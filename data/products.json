@@ -1,0 +1,168 @@
+[
+    {
+        "id": "sun-001",
+        "title": "Portable Mini Beach Fan",
+        "description": "Rechargeable handheld fan with three speeds. Cools you down on the hottest beach days.",
+        "price": 18.99,
+        "category": "beach-essentials",
+        "tags": [
+            "trending",
+            "under-25"
+        ],
+        "image": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-01"
+    },
+    {
+        "id": "sun-002",
+        "title": "Aesthetic LED Sunset Lamp",
+        "description": "Warm sunset glow projector. The cozy room upgrade everyone is buying this summer.",
+        "price": 22.5,
+        "category": "aesthetic-room",
+        "tags": [
+            "trending",
+            "tiktok",
+            "under-25"
+        ],
+        "image": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-04"
+    },
+    {
+        "id": "sun-003",
+        "title": "Insulated Tumbler 40oz",
+        "description": "Keeps drinks ice cold for 24 hours. The viral tumbler with handle and straw.",
+        "price": 34.0,
+        "category": "summer-gadgets",
+        "tags": [
+            "trending",
+            "tiktok"
+        ],
+        "image": "https://images.unsplash.com/photo-1602874801007-bd458bb1b8b6?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-06"
+    },
+    {
+        "id": "sun-004",
+        "title": "Compact Travel Neck Pillow",
+        "description": "Memory foam pillow that folds into its own pouch. Long flights, sorted.",
+        "price": 24.99,
+        "category": "travel",
+        "tags": [
+            "under-25",
+            "trending"
+        ],
+        "image": "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-08"
+    },
+    {
+        "id": "sun-005",
+        "title": "Beach Blanket Sand-Free",
+        "description": "Lightweight, quick-dry, and sand slips right through. Big enough for the whole crew.",
+        "price": 29.95,
+        "category": "beach-essentials",
+        "tags": [
+            "trending"
+        ],
+        "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-09"
+    },
+    {
+        "id": "sun-006",
+        "title": "Wireless Earbuds Mini",
+        "description": "Sweat-resistant earbuds with noise cancel. Tiny, comfortable, and crisp.",
+        "price": 49.99,
+        "category": "summer-gadgets",
+        "tags": [
+            "tiktok"
+        ],
+        "image": "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f37?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-10"
+    },
+    {
+        "id": "sun-007",
+        "title": "Aesthetic Cloud Desk Light",
+        "description": "Soft pastel cloud lamp. Pinterest-worthy room glow on a budget.",
+        "price": 19.99,
+        "category": "aesthetic-room",
+        "tags": [
+            "under-25",
+            "tiktok"
+        ],
+        "image": "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-11"
+    },
+    {
+        "id": "sun-008",
+        "title": "Foldable Travel Backpack",
+        "description": "Packs into a pouch and expands to 25L. Carry-on safe and water resistant.",
+        "price": 23.0,
+        "category": "travel",
+        "tags": [
+            "under-25"
+        ],
+        "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-12"
+    },
+    {
+        "id": "sun-009",
+        "title": "Mini Portable Blender",
+        "description": "USB-C rechargeable blender for smoothies on the go. The TikTok favorite.",
+        "price": 27.99,
+        "category": "summer-gadgets",
+        "tags": [
+            "tiktok",
+            "trending"
+        ],
+        "image": "https://images.unsplash.com/photo-1571689936114-b16146c9570a?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-13"
+    },
+    {
+        "id": "sun-010",
+        "title": "Reef-Safe SPF 50 Sunscreen",
+        "description": "Lightweight, no white cast, ocean friendly. Daily essential for sunny days.",
+        "price": 14.5,
+        "category": "beach-essentials",
+        "tags": [
+            "under-25"
+        ],
+        "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-14"
+    },
+    {
+        "id": "sun-011",
+        "title": "Silk Sleep Eye Mask",
+        "description": "Pure mulberry silk for cool, gentle sleep. Travel-bag must-have.",
+        "price": 16.99,
+        "category": "travel",
+        "tags": [
+            "under-25",
+            "tiktok"
+        ],
+        "image": "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-15"
+    },
+    {
+        "id": "sun-012",
+        "title": "Pastel Hair Claw Set",
+        "description": "Trending oversized claws in summer pastels. Six pieces in one set.",
+        "price": 12.99,
+        "category": "aesthetic-room",
+        "tags": [
+            "under-25",
+            "tiktok",
+            "trending"
+        ],
+        "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&auto=format&fit=crop",
+        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
+        "createdAt": "2026-05-16"
+    }
+]

@@ -1,0 +1,32 @@
+[
+    {
+        "slug": "summer-gadgets",
+        "name": "Summer Gadgets",
+        "tagline": "Smart picks that beat the heat",
+        "image": "https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&auto=format&fit=crop"
+    },
+    {
+        "slug": "beach-essentials",
+        "name": "Beach Essentials",
+        "tagline": "Sand, sun and zero stress",
+        "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&auto=format&fit=crop"
+    },
+    {
+        "slug": "tiktok-finds",
+        "name": "Viral TikTok Finds",
+        "tagline": "The internet made us buy it",
+        "image": "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1200&auto=format&fit=crop"
+    },
+    {
+        "slug": "aesthetic-room",
+        "name": "Aesthetic Room",
+        "tagline": "Pinterest energy on a budget",
+        "image": "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&auto=format&fit=crop"
+    },
+    {
+        "slug": "travel",
+        "name": "Travel Accessories",
+        "tagline": "Pack lighter, travel smarter",
+        "image": "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&auto=format&fit=crop"
+    }
+]
