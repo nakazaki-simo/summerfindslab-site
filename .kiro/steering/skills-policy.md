@@ -28,6 +28,7 @@ are tracked here so they can be pulled for upgrades.
 |---|---|---|---|
 | `https://github.com/zubair-trabzada/geo-seo-claude` | `main` | `skills/` | 15 |
 | `https://github.com/coreyhaines31/marketingskills` | `main` | `skills/` | 41 |
+| `https://github.com/czlonkowski/n8n-skills` | `main` | `skills/` | 7 |
 
 When the user adds a new source, append a row to this table and commit
 the change in the same PR as the new skills.
