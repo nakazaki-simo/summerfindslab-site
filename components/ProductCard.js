@@ -165,11 +165,11 @@ export default function ProductCard({ product, masonry = false, priority = false
                         <span className="absolute inset-0 z-0 translate-y-full bg-gradient-to-r from-peach-400 to-peach-500 transition-transform duration-300 group-hover/btn:translate-y-0" />
                     </a>
                     <Link
-                        href={`/category/${product.category}`}
+                        href={`/finds/${product.id}`}
                         className="rounded-full bg-sand-100 text-ink px-3 py-2.5 text-xs font-medium hover:bg-sand-200 transition"
-                        aria-label={`See more in ${product.category}`}
+                        aria-label={`Read our review of ${product.title}`}
                     >
-                        More
+                        Review
                     </Link>
                 </div>
 
