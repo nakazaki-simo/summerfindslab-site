@@ -26,6 +26,7 @@ are tracked here so they can be pulled for upgrades.
 
 | Source repo | Branch | Skills folder | Count |
 |---|---|---|---|
+| `https://github.com/anthropics/skills` | `main` | `skills/claude-api` | 1 |
 | `https://github.com/zubair-trabzada/geo-seo-claude` | `main` | `skills/` | 15 |
 | `https://github.com/coreyhaines31/marketingskills` | `main` | `skills/` | 41 |
 
