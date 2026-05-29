@@ -3,30 +3,42 @@
         "slug": "summer-gadgets",
         "name": "Summer Gadgets",
         "tagline": "Smart picks that beat the heat",
-        "image": "https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&auto=format&fit=crop"
+        "image": "https://m.media-amazon.com/images/I/817RKjrgrIL._AC_SL1500_.jpg"
     },
     {
         "slug": "beach-essentials",
         "name": "Beach Essentials",
         "tagline": "Sand, sun and zero stress",
-        "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&auto=format&fit=crop"
+        "image": "https://m.media-amazon.com/images/I/81TlKWis2AL._AC_SL1500_.jpg"
     },
     {
         "slug": "tiktok-finds",
         "name": "Viral TikTok Finds",
         "tagline": "The internet made us buy it",
-        "image": "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1200&auto=format&fit=crop"
+        "image": "https://m.media-amazon.com/images/I/810zRr73SwL._AC_SL1500_.jpg"
     },
     {
         "slug": "aesthetic-room",
         "name": "Aesthetic Room",
         "tagline": "Pinterest energy on a budget",
-        "image": "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&auto=format&fit=crop"
+        "image": "https://m.media-amazon.com/images/I/810zRr73SwL._AC_SL1500_.jpg"
     },
     {
         "slug": "travel",
         "name": "Travel Accessories",
         "tagline": "Pack lighter, travel smarter",
-        "image": "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&auto=format&fit=crop"
+        "image": "https://m.media-amazon.com/images/I/71N+WgSaPzL._AC_SL1500_.jpg"
+    },
+    {
+        "slug": "skincare-summer",
+        "name": "Summer Skincare",
+        "tagline": "SPF-friendly faves and after-sun heroes",
+        "image": "https://m.media-amazon.com/images/I/5147PCBYBnL._AC_SL1500_.jpg"
+    },
+    {
+        "slug": "pet-summer",
+        "name": "Pet Summer",
+        "tagline": "Cool, safe and happy companions",
+        "image": "https://m.media-amazon.com/images/I/710dsUc1UxL._AC_SL1500_.jpg"
     }
 ]

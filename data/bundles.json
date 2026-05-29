@@ -1,0 +1,52 @@
+[
+    {
+        "slug": "the-beach-day-kit",
+        "name": "The Beach Day Kit",
+        "tagline": "Everything you actually need for one perfect beach day",
+        "intro": "Five items, one tote, zero regrets. The complete beach-day stack our editor packs every weekend — sand-free blanket, refillable mister, and a portable fan that actually works.",
+        "totalLabel": "Stack total",
+        "color": "from-peach-200 to-sand-100",
+        "productIds": [
+            "momomus-fouta-momomus-fouta-de-plage-xxl-anti-sable-avec-franges-et-100-co-001",
+            "pro-breeze-pro-breeze-airflo-mini-turbo-003",
+            "grifema-pulv-grifema-pulverisateur-d-eau-200-ml-blanc-004"
+        ]
+    },
+    {
+        "slug": "the-carry-on-saver",
+        "name": "The Carry-On Saver",
+        "tagline": "Pack lighter, never pay an overweight fee again",
+        "intro": "The three-piece travel kit that quietly upgrades every flight. Digital scale to dodge airline overweight fees, packing cubes for organized bags, and a heat device for the bug bites you'll forget to anticipate.",
+        "totalLabel": "Travel total",
+        "color": "from-sea-100 to-sand-100",
+        "productIds": [
+            "mycarbon-mycarbon-pese-valise-de-voyage-electronique-002",
+            "amazon-essentials-amazon-essentials-ensemble-de-4-cubes-de-rangement-organisat-0",
+            "beurer-bitex-beurer-bitex-go-deep-black-dispositif-contre-les-demangeaisons-008"
+        ]
+    },
+    {
+        "slug": "the-aesthetic-room-refresh",
+        "name": "The Aesthetic Room Refresh",
+        "tagline": "Pinterest energy, real budget",
+        "intro": "Two items, one afternoon, an entirely new room glow. RGB LED ribbon for soft ambient color, and a no-cast skincare-friendly tonic to round out the desk-top photo.",
+        "totalLabel": "Glow-up total",
+        "color": "from-peach-100 to-sand-50",
+        "productIds": [
+            "hovvida-ruban-hovvida-ruban-led-5m-30-led-metre-1x5m-24v-rvb-bande-led-150-007",
+            "ordinary-the-ordinary-tonique-exfoliant-a-l-acide-glycolique-7-005"
+        ]
+    },
+    {
+        "slug": "the-summer-pet-essentials",
+        "name": "The Summer Pet Kit",
+        "tagline": "Cooler, safer summer days for your dog",
+        "intro": "Two essentials our editors test on real golden retrievers. Self-cooling mat for hot afternoons, plus a buoyant reflective life jacket for lake-day swims.",
+        "totalLabel": "Kit total",
+        "color": "from-sea-200 to-cream",
+        "productIds": [
+            "pecute-tapis-pecute-tapis-rafraichissant-chien-chat-010",
+            "citetoile-gilet-citetoile-gilet-de-sauvetage-pour-chien-gilet-de-sauvetage-p-009"
+        ]
+    }
+]

@@ -1,187 +1,183 @@
 "use client";
 
+import Image from "next/image";
 import { useRef } from "react";
-import {
-    motion,
-    useScroll,
-    useTransform,
-    useMotionValue,
-    useSpring
-} from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
 import MagneticButton from "./MagneticButton";
 import BeachVideo from "./BeachVideo";
 
-const floatImages = [
-    {
-        src: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&auto=format&fit=crop",
-        label: "Sunset lamp",
-        price: "$22.50",
-        pos: "top-28 left-4 md:top-32 md:left-10",
-        size: "w-32 md:w-44"
-    },
-    {
-        src: "https://images.unsplash.com/photo-1571689936114-b16146c9570a?w=600&auto=format&fit=crop",
-        label: "Mini blender",
-        price: "$27.99",
-        pos: "bottom-44 left-12 md:bottom-44 md:left-32",
-        size: "w-28 md:w-40"
-    },
-    {
-        src: "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=600&auto=format&fit=crop",
-        label: "Travel pillow",
-        price: "$24.99",
-        pos: "top-40 right-6 md:top-44 md:right-24",
-        size: "w-32 md:w-44"
-    },
-    {
-        src: "https://images.unsplash.com/photo-1519740698800-9d6f31037e3a?w=600&auto=format&fit=crop",
-        label: "Beach kit",
-        price: "$29.95",
-        pos: "bottom-44 right-2 md:bottom-44 md:right-12",
-        size: "w-32 md:w-48"
-    }
-];
-
-export default function CinematicHero() {
+/**
+ * Editorial-grade hero. Patterned after Wirecutter / The Strategist:
+ *  - One single hero pick, big photo, instant click target
+ *  - Trust ribbon (last updated + tested by editor)
+ *  - Mini "we tested 10, this won" credibility line
+ */
+export default function CinematicHero({ heroPick, total = 10 }) {
     const ref = useRef(null);
     const { scrollYProgress } = useScroll({
         target: ref,
         offset: ["start start", "end start"]
     });
-
-    const titleY = useTransform(scrollYProgress, [0, 1], ["0%", "40%"]);
+    const titleY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
     const titleOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
-    // Mouse parallax for floating product cards
-    const mx = useMotionValue(0);
-    const my = useMotionValue(0);
-    const smx = useSpring(mx, { stiffness: 70, damping: 18 });
-    const smy = useSpring(my, { stiffness: 70, damping: 18 });
-
-    function handleMove(e) {
-        const r = ref.current?.getBoundingClientRect();
-        if (!r) return;
-        mx.set(((e.clientX - r.left) / r.width - 0.5) * 2);
-        my.set(((e.clientY - r.top) / r.height - 0.5) * 2);
-    }
+    if (!heroPick) return null;
 
     return (
         <section
             ref={ref}
-            onMouseMove={handleMove}
-            className="relative h-[100svh] min-h-[680px] w-full overflow-hidden text-cream"
+            className="relative min-h-[100svh] w-full overflow-hidden text-cream"
         >
-            {/* Real cinematic beach video with parallax sun, palms, sparkles */}
             <BeachVideo />
 
-            {/* Floating product cards */}
-            {floatImages.map((it, i) => (
-                <FloatCard key={i} item={it} index={i} mx={smx} my={smy} />
-            ))}
-
-            {/* Center content */}
             <motion.div
                 style={{ y: titleY, opacity: titleOpacity }}
-                className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6"
+                className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 md:pt-28 pb-16"
             >
-                <motion.span
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.6, duration: 0.6 }}
-                    className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/30 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-cream/90 shadow-soft"
-                >
-                    <motion.span
-                        className="h-2 w-2 rounded-full bg-peach-500"
-                        animate={{ scale: [1, 1.6, 1], opacity: [1, 0.5, 1] }}
-                        transition={{ duration: 1.6, repeat: Infinity }}
-                    />
-                    Summer 2026 · Daily updated
-                </motion.span>
+                <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-16 items-center">
+                    {/* Copy column */}
+                    <div>
+                        <motion.span
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6 }}
+                            className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]"
+                        >
+                            <motion.span
+                                className="h-2 w-2 rounded-full bg-peach-300"
+                                animate={{ scale: [1, 1.5, 1], opacity: [1, 0.6, 1] }}
+                                transition={{ duration: 1.6, repeat: Infinity }}
+                            />
+                            Summer 2026 · Editor-tested
+                        </motion.span>
 
-                <h1 className="mt-6 font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold leading-[1.02] tracking-tight max-w-5xl text-cream drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)]">
-                    <SplitLine text="Trending summer finds," delay={1.7} />
-                    <SplitLine
-                        text="curated daily."
-                        delay={2.0}
-                        accent
-                        className="block"
-                    />
-                </h1>
+                        <h1 className="mt-6 font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold leading-[1.02] tracking-tight drop-shadow-[0_2px_20px_rgba(0,0,0,0.55)]">
+                            <SplitLine text="The summer picks" delay={0.1} />
+                            <SplitLine text="we&apos;d buy ourselves." delay={0.4} accent className="block" />
+                        </h1>
 
-                <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 2.4, duration: 0.7 }}
-                    className="mt-6 max-w-2xl text-base md:text-lg text-cream/90 backdrop-blur-sm bg-black/20 rounded-full px-5 py-2 ring-1 ring-white/20"
-                >
-                    Hand-picked Amazon gadgets, beach essentials, viral TikTok products,
-                    aesthetic room upgrades and travel must-haves.
-                </motion.p>
+                        <p className="mt-6 max-w-xl text-base md:text-lg text-cream/85 leading-relaxed">
+                            We tested {total} of summer 2026&apos;s most-shared Amazon finds.
+                            Below is the top pick, plus four curated bundles that solve
+                            real summer problems for under $100 each.
+                        </p>
 
-                <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 2.6, duration: 0.6 }}
-                    className="mt-8 flex flex-wrap items-center justify-center gap-3"
-                >
-                    <MagneticButton
-                        as="a"
-                        href="/trending"
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.8, duration: 0.6 }}
+                            className="mt-8 flex flex-wrap items-center gap-3"
+                        >
+                            <MagneticButton
+                                as="a"
+                                href={heroPick.affiliateUrl}
+                                target="_blank"
+                                rel="sponsored nofollow noopener noreferrer"
+                                data-cursor="shop"
+                                className="rounded-full bg-cream text-ink px-7 py-3.5 text-sm font-semibold hover:bg-white shadow-soft"
+                            >
+                                See the top pick on Amazon →
+                            </MagneticButton>
+                            <MagneticButton
+                                as="a"
+                                href="#bundles"
+                                className="rounded-full bg-white/15 backdrop-blur ring-1 ring-white/40 text-cream px-7 py-3.5 text-sm font-medium hover:bg-white/25"
+                            >
+                                Browse bundles
+                            </MagneticButton>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1, duration: 0.6 }}
+                            className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs uppercase tracking-[0.18em] text-cream/70"
+                        >
+                            <span className="inline-flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-peach-300" />
+                                Updated weekly
+                            </span>
+                            <span>·</span>
+                            <span>Editor-tested</span>
+                            <span>·</span>
+                            <span>FTC-disclosed affiliate links</span>
+                        </motion.div>
+                    </div>
+
+                    {/* Hero pick card */}
+                    <motion.a
+                        href={heroPick.affiliateUrl}
+                        target="_blank"
+                        rel="sponsored nofollow noopener noreferrer"
                         data-cursor="shop"
-                        className="rounded-full bg-cream text-ink px-7 py-3.5 text-sm font-medium hover:bg-white shadow-soft"
+                        initial={{ opacity: 0, scale: 0.92, y: 30 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: 0.4, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                        whileHover={{ y: -6 }}
+                        className="relative block group rounded-3xl bg-white shadow-soft ring-1 ring-white/50 overflow-hidden"
                     >
-                        Shop trending finds →
-                    </MagneticButton>
-                    <MagneticButton
-                        as="a"
-                        href="/under-25"
-                        className="rounded-full bg-white/15 backdrop-blur ring-1 ring-white/40 text-cream px-7 py-3.5 text-sm font-medium hover:bg-white/25"
-                    >
-                        Under $25
-                    </MagneticButton>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 2.9, duration: 0.7 }}
-                    className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs uppercase tracking-[0.18em] text-cream/70"
-                >
-                    <span>As seen in</span>
-                    <span className="font-display text-base normal-case tracking-normal text-cream/90">
-                        Vogue Living
-                    </span>
-                    <span>·</span>
-                    <span className="font-display text-base normal-case tracking-normal text-cream/90">
-                        TechRadar
-                    </span>
-                    <span>·</span>
-                    <span className="font-display text-base normal-case tracking-normal text-cream/90">
-                        BuzzFeed
-                    </span>
-                    <span>·</span>
-                    <span className="font-display text-base normal-case tracking-normal text-cream/90">
-                        The Strategist
-                    </span>
-                </motion.div>
+                        <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+                            <span className="rounded-full bg-emerald-600 text-white text-[11px] font-semibold uppercase tracking-[0.14em] px-3 py-1.5 shadow">
+                                Top pick
+                            </span>
+                            {heroPick.tags?.includes("trending") && (
+                                <span className="rounded-full bg-peach-500 text-white text-[11px] font-semibold uppercase tracking-[0.14em] px-3 py-1.5 shadow">
+                                    Trending
+                                </span>
+                            )}
+                        </div>
+                        <div className="relative aspect-[5/4] bg-white">
+                            <Image
+                                src={heroPick.image}
+                                alt={heroPick.title}
+                                fill
+                                priority
+                                sizes="(min-width:1024px) 40vw, 100vw"
+                                className={
+                                    heroPick.imageSource === "amazon"
+                                        ? "object-contain p-8 md:p-10"
+                                        : "object-cover"
+                                }
+                            />
+                        </div>
+                        <div className="p-6 md:p-7 text-ink">
+                            <div className="text-[11px] uppercase tracking-[0.18em] text-ink/55 font-semibold">
+                                {heroPick.brand}
+                            </div>
+                            <h2 className="mt-2 font-display text-xl md:text-2xl font-semibold leading-snug">
+                                {heroPick.title}
+                            </h2>
+                            <p className="mt-2 text-sm text-ink/70 line-clamp-2">
+                                {heroPick.description}
+                            </p>
+                            <div className="mt-4 flex items-end justify-between">
+                                <div>
+                                    <div className="font-display text-3xl font-semibold text-peach-500">
+                                        ${heroPick.price.toFixed(2)}
+                                    </div>
+                                    {heroPick.rating && (
+                                        <div className="mt-1 text-xs text-ink/60">
+                                            <span className="text-amber-500">★ {heroPick.rating.value.toFixed(1)}</span>{" "}
+                                            <span>· {heroPick.rating.count}+ reviews</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="inline-flex items-center gap-1 text-sm font-semibold text-ink group-hover:text-peach-500 transition">
+                                    View on Amazon →
+                                </span>
+                            </div>
+                            <p className="mt-3 text-[10px] uppercase tracking-wider text-ink/40">
+                                Affiliate link · we earn a commission
+                            </p>
+                        </div>
+                    </motion.a>
+                </div>
             </motion.div>
 
-            {/* Scroll cue */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 3, duration: 0.7 }}
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-cream/80 text-xs uppercase tracking-[0.18em]"
-            >
-                <span>Scroll</span>
-                <span className="block h-10 w-[1px] bg-cream/40 overflow-hidden">
-                    <motion.span
-                        className="block h-full w-full bg-cream"
-                        animate={{ y: ["-100%", "100%"] }}
-                        transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                </span>
-            </motion.div>
+            {/* Soft scroll cue */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 text-cream/70 text-[10px] uppercase tracking-[0.18em]">
+                Scroll for bundles ↓
+            </div>
         </section>
     );
 }
@@ -196,64 +192,16 @@ function SplitLine({ text, delay = 0, accent = false, className = "" }) {
                         initial={{ y: "110%" }}
                         animate={{ y: "0%" }}
                         transition={{
-                            delay: delay + i * 0.07,
-                            duration: 0.85,
+                            delay: delay + i * 0.06,
+                            duration: 0.7,
                             ease: [0.22, 1, 0.36, 1]
                         }}
-                        className={`inline-block mr-3 ${accent ? "italic text-peach-500" : ""}`}
+                        className={`inline-block mr-3 ${accent ? "italic text-peach-300" : ""}`}
                     >
                         {w}
                     </motion.span>
                 </span>
             ))}
         </span>
-    );
-}
-
-function FloatCard({ item, index, mx, my }) {
-    const factor = (index % 2 === 0 ? 1 : -1) * (14 + index * 4);
-    const tx = useTransform(mx, (v) => v * factor);
-    const ty = useTransform(my, (v) => v * factor * 0.7);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 80, rotate: -8 }}
-            animate={{ opacity: 1, y: 0, rotate: index % 2 === 0 ? -3 : 4 }}
-            transition={{
-                delay: 1.8 + index * 0.12,
-                duration: 1.1,
-                ease: [0.22, 1, 0.36, 1]
-            }}
-            whileHover={{ scale: 1.06, rotate: 0, zIndex: 50 }}
-            style={{ x: tx, y: ty }}
-            className={`absolute z-10 ${item.pos} ${item.size} rounded-2xl bg-white/95 backdrop-blur shadow-soft ring-1 ring-white/40 overflow-hidden hidden sm:block`}
-        >
-            <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{
-                    duration: 4 + index,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
-            >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                    src={item.src}
-                    alt={item.label}
-                    className="w-full h-32 md:h-40 object-cover"
-                />
-                <div className="px-3 py-2 text-ink">
-                    <div className="text-[10px] uppercase tracking-wider text-ink/50">
-                        Today
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{item.label}</span>
-                        <span className="text-xs font-semibold text-peach-500">
-                            {item.price}
-                        </span>
-                    </div>
-                </div>
-            </motion.div>
-        </motion.div>
     );
 }

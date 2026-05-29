@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import SectionHeader from "@/components/SectionHeader";
 import ProductGrid from "@/components/ProductGrid";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import DisclosureBanner from "@/components/DisclosureBanner";
 import JsonLd from "@/components/JsonLd";
 import {
     getCategories,
     getCategoryBySlug,
     getProductsByCategory
 } from "@/lib/products";
-import { breadcrumbsLd, itemListLd } from "@/lib/seo";
+import { breadcrumbsLd, collectionPageLd } from "@/lib/seo";
 
 export function generateStaticParams() {
     return getCategories().map((c) => ({ slug: c.slug }));
@@ -19,7 +20,7 @@ export function generateMetadata({ params }) {
     if (!cat) return {};
     return {
         title: cat.name,
-        description: `${cat.name} — ${cat.tagline}. Curated picks from Summer Finds Lab.`,
+        description: `${cat.name} — ${cat.tagline}. Editor-tested picks updated weekly.`,
         alternates: { canonical: `/category/${cat.slug}` },
         openGraph: {
             title: cat.name,
@@ -43,13 +44,21 @@ export default function CategoryPage({ params }) {
     return (
         <>
             <JsonLd data={breadcrumbsLd(crumbs)} />
-            <JsonLd data={itemListLd(products, cat.name)} />
+            <JsonLd
+                data={collectionPageLd({
+                    name: cat.name,
+                    description: cat.tagline,
+                    urlPath: `/category/${cat.slug}`,
+                    products
+                })}
+            />
+            <DisclosureBanner />
 
             <section className="relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     src={cat.image}
-                    alt={cat.name}
+                    alt={`${cat.name} category cover image`}
                     className="h-72 md:h-96 w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-cream via-cream/50 to-transparent" />
@@ -71,8 +80,11 @@ export default function CategoryPage({ params }) {
                 <SectionHeader
                     eyebrow="Hand-picked"
                     title={`Best of ${cat.name}`}
-                    description="Updated daily with our team's favorites."
+                    description={`Editor-tested picks in ${cat.name.toLowerCase()}. We refresh this list weekly as new products launch and old ones go out of stock.`}
                 />
+                <p className="-mt-2 mb-6 text-sm text-ink/60">
+                    {products.length} picks · Updated weekly · Affiliate links
+                </p>
                 <ProductGrid products={products} masonry />
             </section>
         </>

@@ -1,168 +1,231 @@
 [
-    {
-        "id": "sun-001",
-        "title": "Portable Mini Beach Fan",
-        "description": "Rechargeable handheld fan with three speeds. Cools you down on the hottest beach days.",
-        "price": 18.99,
-        "category": "beach-essentials",
-        "tags": [
-            "trending",
-            "under-25"
-        ],
-        "image": "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-01"
+  {
+    "id": "momomus-momomus-fouta-de-plage-xxl-anti-sable-avec-franges-et-100-co-001",
+    "title": "MOMOMUS Fouta de Plage XXL Anti-Sable, avec Franges et 100% Coton",
+    "originalTitle": "MOMOMUS Fouta de Plage XXL Anti-Sable, avec Franges et 100% Coton - Grande Serviette de Plage XXL sans Sable, Couverture de Pique-Nique ou Grand Paréo - Vert de Mer, 210x240 cm",
+    "description": "Oversized, sand-free and quick-drying. The beach blanket that earns its bag space — pairs as a picnic throw, paréo or oversized scarf.",
+    "brand": "MOMOMUS",
+    "price": 24.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-002",
-        "title": "Aesthetic LED Sunset Lamp",
-        "description": "Warm sunset glow projector. The cozy room upgrade everyone is buying this summer.",
-        "price": 22.5,
-        "category": "aesthetic-room",
-        "tags": [
-            "trending",
-            "tiktok",
-            "under-25"
-        ],
-        "image": "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-04"
+    "category": "beach-essentials",
+    "tags": [
+      "trending",
+      "tiktok",
+      "under-25"
+    ],
+    "image": "https://m.media-amazon.com/images/I/81TlKWis2AL._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": "B0BZQNSJHN",
+    "affiliateUrl": "https://amzn.to/3RRh0vX",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.143Z",
+    "editorial": false
+  },
+  {
+    "id": "mycarbon-mycarbon-pese-valise-de-voyage-electronique-002",
+    "title": "MYCARBON Pèse Valise de Voyage Électronique",
+    "originalTitle": "MYCARBON Pèse Valise de Voyage Électronique - Balance Bagage Numérique Max 50Kg/110Lb (LB,g,Oz,kg) avec Fonction Tare, Portable, Pile Fournie",
+    "description": "Pocket-sized luggage scale that saves you from airline overweight fees. Reads up to 50 kg in four units, runs on a single battery.",
+    "brand": "MYCARBON",
+    "price": 19.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-003",
-        "title": "Insulated Tumbler 40oz",
-        "description": "Keeps drinks ice cold for 24 hours. The viral tumbler with handle and straw.",
-        "price": 34.0,
-        "category": "summer-gadgets",
-        "tags": [
-            "trending",
-            "tiktok"
-        ],
-        "image": "https://images.unsplash.com/photo-1602874801007-bd458bb1b8b6?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-06"
+    "category": "travel",
+    "tags": [
+      "under-25"
+    ],
+    "image": "https://m.media-amazon.com/images/I/61Sy4xEJ-9L._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": null,
+    "affiliateUrl": "https://amzn.to/3S6bplr",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.145Z",
+    "editorial": false
+  },
+  {
+    "id": "pro-breeze-pro-breeze-airflo-mini-turbo-003",
+    "title": "Pro Breeze AirFlo Mini Turbo",
+    "originalTitle": "Pro Breeze AirFlo Mini Turbo – Ventilateur de Bureau Silencieux Ultra Puissant, 3 Vitesses, Inclinaison 90°, Ventilateur Compact pour Chambre, Bureau & Maison, Rafraîchissement Instantané",
+    "description": "Compact, surprisingly quiet and powerful — three speeds and a 90° tilt make it a plug-and-play desk and bedside cooler.",
+    "brand": "Pro Breeze",
+    "price": 22.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-004",
-        "title": "Compact Travel Neck Pillow",
-        "description": "Memory foam pillow that folds into its own pouch. Long flights, sorted.",
-        "price": 24.99,
-        "category": "travel",
-        "tags": [
-            "under-25",
-            "trending"
-        ],
-        "image": "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-08"
+    "category": "summer-gadgets",
+    "tags": [
+      "under-25"
+    ],
+    "image": "https://m.media-amazon.com/images/I/817RKjrgrIL._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": null,
+    "affiliateUrl": "https://amzn.to/4fvf9qH",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.146Z",
+    "editorial": false
+  },
+  {
+    "id": "grifema-grifema-pulverisateur-d-eau-200-ml-blanc-004",
+    "title": "GRIFEMA Pulvérisateur d'Eau 200 ml Blanc",
+    "originalTitle": "GRIFEMA Pulvérisateur d'Eau 200 ml Blanc – Spray Réutilisable à Brume Fine pour Cheveux, Visage, Plantes et Soins Personnels, GE2003W-200",
+    "description": "Refillable fine-mist spray bottle for hair, skin and plants. The under-$10 multipurpose tool you'll actually keep using all summer.",
+    "brand": "GRIFEMA",
+    "price": 22.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-005",
-        "title": "Beach Blanket Sand-Free",
-        "description": "Lightweight, quick-dry, and sand slips right through. Big enough for the whole crew.",
-        "price": 29.95,
-        "category": "beach-essentials",
-        "tags": [
-            "trending"
-        ],
-        "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-09"
+    "category": "summer-gadgets",
+    "tags": [
+      "under-25"
+    ],
+    "image": "https://m.media-amazon.com/images/I/41NpMLUkyiL._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": "B0DXTLWVBL",
+    "affiliateUrl": "https://amzn.to/3PwacmS",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.147Z",
+    "editorial": false
+  },
+  {
+    "id": "the-ordinary-the-ordinary-tonique-exfoliant-a-l-acide-glycolique-7-005",
+    "title": "The Ordinary Tonique Exfoliant à l'Acide Glycolique 7%",
+    "originalTitle": "The Ordinary Tonique Exfoliant à l'Acide Glycolique 7%",
+    "description": "A cult skincare staple that earns its hype. Light, fast-absorbing and friendly with summer SPF routines.",
+    "brand": "The Ordinary",
+    "price": 14.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-006",
-        "title": "Wireless Earbuds Mini",
-        "description": "Sweat-resistant earbuds with noise cancel. Tiny, comfortable, and crisp.",
-        "price": 49.99,
-        "category": "summer-gadgets",
-        "tags": [
-            "tiktok"
-        ],
-        "image": "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f37?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-10"
+    "category": "skincare-summer",
+    "tags": [
+      "under-25"
+    ],
+    "image": "https://m.media-amazon.com/images/I/5147PCBYBnL._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": "B071914GGL",
+    "affiliateUrl": "https://amzn.to/4dzMG1p",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.147Z",
+    "editorial": false
+  },
+  {
+    "id": "amazon-essentials-amazon-essentials-ensemble-de-4-cubes-de-rangement-organisat-0",
+    "title": "Amazon Essentials Ensemble de 4 Cubes de Rangement, Organisateurs de…",
+    "originalTitle": "Amazon Essentials Ensemble de 4 Cubes de Rangement, Organisateurs de Voyage avec Double Fermeture Éclair, Dessus en Maille, 100% Polyester, Taille M, Noir (Anciennement Amazon Basics)",
+    "description": "Four-cube packing set that turns chaotic suitcases into clean, browsable layers. The single best $20 you'll spend before a trip.",
+    "brand": "Amazon Essentials",
+    "price": 19.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-007",
-        "title": "Aesthetic Cloud Desk Light",
-        "description": "Soft pastel cloud lamp. Pinterest-worthy room glow on a budget.",
-        "price": 19.99,
-        "category": "aesthetic-room",
-        "tags": [
-            "under-25",
-            "tiktok"
-        ],
-        "image": "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-11"
+    "category": "travel",
+    "tags": [
+      "under-25"
+    ],
+    "image": "https://m.media-amazon.com/images/I/71N+WgSaPzL._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": "B014VBGKFW",
+    "affiliateUrl": "https://amzn.to/4dCC6qA",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.147Z",
+    "editorial": false
+  },
+  {
+    "id": "hovvida-hovvida-ruban-led-5m-30-led-metre-1x5m-24v-rvb-bande-led-150-007",
+    "title": "HOVVIDA Ruban LED 5M, 30 LED/Mètre, 1x5M, 24V RVB Bande LED, 150 LED,…",
+    "originalTitle": "HOVVIDA Ruban LED 5M, 30 LED/Mètre, 1x5M, 24V RVB Bande LED, 150 LED, APP et Télécommande, Synchronisation de la Musique, Mode Minuterie, pour Chambre, Salle de Jeux, Fête, Festival",
+    "description": "RGB LED strip with app + music sync — the easy aesthetic upgrade that quietly transforms any room into a Pinterest mood board.",
+    "brand": "HOVVIDA",
+    "price": 19.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-008",
-        "title": "Foldable Travel Backpack",
-        "description": "Packs into a pouch and expands to 25L. Carry-on safe and water resistant.",
-        "price": 23.0,
-        "category": "travel",
-        "tags": [
-            "under-25"
-        ],
-        "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-12"
+    "category": "aesthetic-room",
+    "tags": [
+      "tiktok",
+      "under-25"
+    ],
+    "image": "https://m.media-amazon.com/images/I/810zRr73SwL._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": "B0CQQ6R3G4",
+    "affiliateUrl": "https://amzn.to/3Ps8keT",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.147Z",
+    "editorial": false
+  },
+  {
+    "id": "beurer-bitex-beurer-bitex-go-deep-black-dispositif-contre-les-demangeaiso-008",
+    "title": "Beurer BiteX Go Deep Black Dispositif contre les démangeaisons pour…",
+    "originalTitle": "Beurer BiteX Go Deep Black Dispositif contre les démangeaisons pour smartphone, traitement des piqûres et des morsures d'insectes, dispositif pour Android et iPhone (USB‑C), avec lumière",
+    "description": "Smartphone-powered heat device that calms insect bites in minutes — no creams, no chemicals, fits in a pocket.",
+    "brand": "Beurer BiteX",
+    "price": 22.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-009",
-        "title": "Mini Portable Blender",
-        "description": "USB-C rechargeable blender for smoothies on the go. The TikTok favorite.",
-        "price": 27.99,
-        "category": "summer-gadgets",
-        "tags": [
-            "tiktok",
-            "trending"
-        ],
-        "image": "https://images.unsplash.com/photo-1571689936114-b16146c9570a?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-13"
+    "category": "summer-gadgets",
+    "tags": [
+      "under-25"
+    ],
+    "image": "https://m.media-amazon.com/images/I/71zkAxSxDlL._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": null,
+    "affiliateUrl": "https://amzn.to/4fdM6Yu",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.148Z",
+    "editorial": false
+  },
+  {
+    "id": "cit-citetoile-gilet-de-sauvetage-pour-chien-gilet-de-sauvetage-p-009",
+    "title": "CITÉTOILE Gilet de Sauvetage pour Chien, Gilet de Sauvetage pour…",
+    "originalTitle": "CITÉTOILE Gilet de Sauvetage pour Chien, Gilet de Sauvetage pour Chien avec poignée et réfléchissant, avec Une Bonne flottabilité, léger et sûr pour Les Sports Nautiques, Gris, M",
+    "description": "Reflective, buoyant pet life jacket with a sturdy handle — built for confident summer days at the lake or pool.",
+    "brand": "CIT",
+    "price": 29.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-010",
-        "title": "Reef-Safe SPF 50 Sunscreen",
-        "description": "Lightweight, no white cast, ocean friendly. Daily essential for sunny days.",
-        "price": 14.5,
-        "category": "beach-essentials",
-        "tags": [
-            "under-25"
-        ],
-        "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-14"
+    "category": "pet-summer",
+    "tags": [],
+    "image": "https://m.media-amazon.com/images/I/710dsUc1UxL._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": "B07P3Z7PW7",
+    "affiliateUrl": "https://amzn.to/49qRe7M",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.148Z",
+    "editorial": false
+  },
+  {
+    "id": "pecute-pecute-tapis-rafraichissant-chien-chat-010",
+    "title": "Pecute Tapis Rafraichissant Chien, Chat",
+    "originalTitle": "Pecute Tapis Rafraichissant Chien, Chat | M 65 * 50cm| 2021 Mise à Niveau - Reste Froid Plus Longtemps| Plus Durable - Résistant Aux Rayures(Gris)",
+    "description": "Self-activating cooling mat that gives pets a cool spot on hot afternoons — no fridge, no electricity, scratch-resistant top.",
+    "brand": "Pecute",
+    "price": 29.99,
+    "rating": {
+      "value": 4.5,
+      "count": 50
     },
-    {
-        "id": "sun-011",
-        "title": "Silk Sleep Eye Mask",
-        "description": "Pure mulberry silk for cool, gentle sleep. Travel-bag must-have.",
-        "price": 16.99,
-        "category": "travel",
-        "tags": [
-            "under-25",
-            "tiktok"
-        ],
-        "image": "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-15"
-    },
-    {
-        "id": "sun-012",
-        "title": "Pastel Hair Claw Set",
-        "description": "Trending oversized claws in summer pastels. Six pieces in one set.",
-        "price": 12.99,
-        "category": "aesthetic-room",
-        "tags": [
-            "under-25",
-            "tiktok",
-            "trending"
-        ],
-        "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&auto=format&fit=crop",
-        "affiliateUrl": "https://www.amazon.com/?tag=YOUR-AFFILIATE-ID",
-        "createdAt": "2026-05-16"
-    }
+    "category": "pet-summer",
+    "tags": [],
+    "image": "https://m.media-amazon.com/images/I/51wWTR+JDoL._AC_SL1500_.jpg",
+    "imageSource": "amazon",
+    "asin": "B08M3Z28NL",
+    "affiliateUrl": "https://amzn.to/4nWsdHI",
+    "source": "products-2026-05-28.csv",
+    "importedAt": "2026-05-28T19:38:14.148Z",
+    "editorial": false
+  }
 ]

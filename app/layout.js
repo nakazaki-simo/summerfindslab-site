@@ -7,7 +7,6 @@ import Footer from "@/components/Footer";
 import SmoothScroll from "@/components/SmoothScroll";
 import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
-import PageCurtain from "@/components/PageCurtain";
 import BackToTop from "@/components/BackToTop";
 import JsonLd from "@/components/JsonLd";
 
@@ -74,6 +73,13 @@ export const metadata = {
         }
     },
     category: "shopping",
+    other: {
+        // Pinterest Rich Pins / domain verification (TODO: replace with your tag)
+        "pinterest-rich-pin": "true",
+        "p:domain_verify": "REPLACE_WITH_PINTEREST_VERIFICATION_TAG",
+        // For Google Site Verification (TODO)
+        "google-site-verification": "REPLACE_WITH_GOOGLE_VERIFICATION_TAG"
+    },
     formatDetection: {
         telephone: false,
         email: false,
@@ -98,7 +104,6 @@ export default function RootLayout({ children }) {
                 <JsonLd data={websiteLd()} />
             </head>
             <body className="font-sans bg-cream text-ink overflow-x-hidden cursor-none-supported">
-                <PageCurtain />
                 <SmoothScroll />
                 <ScrollProgress />
                 <Cursor />

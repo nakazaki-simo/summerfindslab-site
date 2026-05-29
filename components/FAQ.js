@@ -4,11 +4,12 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { siteConfig } from "@/lib/site";
 
-export default function FAQ() {
+export default function FAQ({ items }) {
+    const list = items ?? siteConfig.faqs;
     const [open, setOpen] = useState(0);
     return (
         <div className="divide-y divide-sand-200 rounded-3xl bg-white ring-1 ring-sand-200 overflow-hidden">
-            {siteConfig.faqs.map((f, i) => {
+            {list.map((f, i) => {
                 const isOpen = open === i;
                 return (
                     <div key={i}>
