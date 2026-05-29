@@ -40,3 +40,10 @@ next-env.d.ts
 
 # transient skill source clones (per .kiro/steering/skills-policy.md)
 /.skill-sources/
+
+# Kiro MCP config (contains API keys — never commit)
+/.kiro/mcp.json
+/.kiro/settings/mcp.json
+
+# Cursor MCP config (contains personal connection URLs — never commit)
+/.cursor/mcp.json

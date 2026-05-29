@@ -2,7 +2,8 @@ import { siteConfig } from "@/lib/site";
 import {
     getAllPosts,
     getCategories,
-    getAllGuides
+    getAllGuides,
+    getAllProducts
 } from "@/lib/products";
 
 export default function sitemap() {
@@ -44,10 +45,19 @@ export default function sitemap() {
         images: [p.cover]
     }));
 
+    const productEntries = getAllProducts().map((p) => ({
+        url: `${base}/finds/${p.id}`,
+        lastModified: new Date(p.importedAt || Date.now()),
+        changeFrequency: "weekly",
+        priority: 0.55,
+        images: [p.image]
+    }));
+
     return [
         ...staticEntries,
         ...categoryEntries,
         ...guideEntries,
-        ...postEntries
+        ...postEntries,
+        ...productEntries
     ];
 }

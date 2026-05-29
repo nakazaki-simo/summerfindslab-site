@@ -10,7 +10,12 @@
         "lint": "next lint",
         "import:images": "node scripts/extract-amazon-images.mjs",
         "import:products": "node scripts/import-products.mjs",
-        "import:all": "node scripts/extract-amazon-images.mjs && node scripts/import-products.mjs"
+        "import:all": "node scripts/extract-amazon-images.mjs && node scripts/import-products.mjs",
+        "generate:pins": "node scripts/generate-pinterest-pins.mjs",
+        "canva:test-auth": "node scripts/canva/test-auth.mjs",
+        "canva:list-templates": "node scripts/canva/list-templates.mjs",
+        "canva:csv": "node scripts/canva/export-csv.mjs",
+        "canva:generate": "node scripts/canva/generate-pins.mjs"
     },
     "dependencies": {
         "lenis": "1.1.20",

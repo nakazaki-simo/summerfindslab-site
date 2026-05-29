@@ -40,8 +40,14 @@ export function GET() {
         .filter((p) => p.tags?.includes("trending"))
         .slice(0, 8)
         .forEach((p) => {
-            lines.push(`- ${p.title} ($${p.price.toFixed(2)}): ${p.description}`);
+            lines.push(`- [${p.title}](${base}/finds/${p.id}) ($${p.price.toFixed(2)}): ${p.description}`);
         });
+    lines.push("");
+    lines.push("## Product detail pages");
+    lines.push("Every product also has a dedicated review page at `/finds/<slug>` with editor notes, FAQs and structured data.");
+    products.slice(0, 24).forEach((p) => {
+        lines.push(`- [${p.title}](${base}/finds/${p.id})`);
+    });
     lines.push("");
     lines.push("## About");
     lines.push(`- [Our story](${base}/about)`);
