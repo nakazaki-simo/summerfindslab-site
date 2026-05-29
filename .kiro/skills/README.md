@@ -29,6 +29,20 @@ GEO (Generative Engine Optimization) and SEO skills.
 - `geo-technical` — Technical GEO checks
 - `geo-update` — Maintenance updates
 
+### From [n8n-skills](https://github.com/czlonkowski/n8n-skills)
+
+n8n workflow design skills — patterns, expression syntax, node config, validation,
+JS/Python Code nodes, and MCP tool guidance. Auto-loaded whenever you ask Kiro to
+design or build n8n workflows.
+
+- `n8n-workflow-patterns` — 6 core architectural patterns (webhook, HTTP, DB, AI agent, scheduled, batch)
+- `n8n-expression-syntax` — `{{$json.body.field}}`-level guidance, common pitfalls
+- `n8n-node-configuration` — operation-aware field requirements, displayOptions
+- `n8n-mcp-tools-expert` — `search_nodes`, `validate_node`, template usage
+- `n8n-validation-expert` — interpret + fix validation errors, workflow gates
+- `n8n-code-javascript` — Code-node JS, `$input`/`$json`/`$node`, batching helpers
+- `n8n-code-python` — Code-node Python (when explicitly requested)
+
 ### From [marketingskills](https://github.com/coreyhaines31/marketingskills)
 
 General marketing, growth, copy, and SEO skills.
@@ -58,3 +72,4 @@ General marketing, growth, copy, and SEO skills.
 Skills retain the licenses of their source repositories. See:
 - https://github.com/zubair-trabzada/geo-seo-claude/blob/main/LICENSE
 - https://github.com/coreyhaines31/marketingskills/blob/main/LICENSE
+- https://github.com/czlonkowski/n8n-skills/blob/main/LICENSE
