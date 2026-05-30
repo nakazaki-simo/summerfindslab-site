@@ -1,0 +1,451 @@
+{
+  "name": "Pinterest Publisher",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "n01-cron",
+      "name": "Schedule (09:00 UTC)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "n01b-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// LOAD CONFIG\n// ===========\n// Centralises every tunable. Anything you'd want to tweak per-run lives here.\n\nconst pinsPerRun = Math.max(1, Math.min(50, Number($env.PINS_PER_RUN || 5)));\nconst batchId = 'publish-' + new Date().toISOString().slice(0, 10);\n\nreturn [{\n  json: {\n    pinsPerRun,\n    batchId,\n    pinterestToken: $env.PINTEREST_ACCESS_TOKEN || '',\n    defaultBoardId: $env.PINTEREST_DEFAULT_BOARD_ID || '',\n    pinsUrl: $env.EXISTING_PINS_JSON_URL || '',\n    publishedLogUrl: $env.PUBLISHED_LOG_URL || '',\n    publishedIngestUrl: $env.PUBLISHED_INGEST_URL || '',\n    linkHostOverride: $env.PIN_LINK_OVERRIDE_HOST || '',\n    started_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n02-config",
+      "name": "Load Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.EXISTING_PINS_JSON_URL}}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n03-fetch-pins",
+      "name": "Fetch Pins",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.PUBLISHED_LOG_URL || 'https://example.invalid/empty.json'}}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n04-fetch-log",
+      "name": "Fetch Published Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.pinterest.com/v5/boards?page_size=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.PINTEREST_ACCESS_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n05-list-boards",
+      "name": "List Pinterest Boards",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        560
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD PUBLISH QUEUE\n// ===================\n// Inputs:\n//   - $('Fetch Pins').first().json             = array of all pins\n//   - $('Fetch Published Log').first().json    = array of already-published pin ids (or {pins: [...]})\n//   - $('List Pinterest Boards').first().json  = Pinterest /v5/boards response\n//   - $('Load Config').first().json            = config\n//\n// Output: one item per pin to publish, with board_id resolved.\n\nfunction asArray(payload) {\n  if (Array.isArray(payload)) return payload;\n  if (payload && Array.isArray(payload.body)) return payload.body;\n  if (payload && Array.isArray(payload.data)) return payload.data;\n  if (payload && Array.isArray(payload.items)) return payload.items;\n  if (payload && Array.isArray(payload.pins)) return payload.pins;\n  return [];\n}\n\nfunction normaliseBoardName(s) {\n  return String(s || '').toLowerCase().replace(/\\s+/g, ' ').trim();\n}\n\nconst cfg = $('Load Config').first().json;\nconst pins = asArray($('Fetch Pins').first().json);\nconst publishedRaw = asArray($('Fetch Published Log').first().json);\nconst boardsResp = $('List Pinterest Boards').first().json || {};\nconst boards = asArray(boardsResp.items) // Pinterest returns { items: [...], bookmark }\n  .concat(asArray(boardsResp));\n\n// Index boards by normalised name.\nconst boardByName = new Map();\nfor (const b of boards) {\n  if (b && b.id && b.name) boardByName.set(normaliseBoardName(b.name), b.id);\n}\n\n// Index published log by pin id.\nconst publishedIds = new Set();\nfor (const p of publishedRaw) {\n  if (typeof p === 'string') publishedIds.add(p);\n  else if (p && p.pinId) publishedIds.add(p.pinId);\n}\n\n// Reset cross-iteration accumulators.\nconst staticData = $getWorkflowStaticData('global');\nstaticData.processed = [];\nstaticData.failed = [];\nstaticData.skipped = [];\nstaticData.batchId = cfg.batchId;\nstaticData.started_at = cfg.started_at;\nstaticData.boardsAvailable = boards.map(b => ({ id: b.id, name: b.name }));\n\nconst queue = [];\nlet throttled = 0;\n\nfor (let i = 0; i < pins.length; i++) {\n  const pin = pins[i];\n  if (!pin || !pin.id || !pin.title || !pin.sourceImage || !pin.link) {\n    staticData.skipped.push({ index: i, id: pin && pin.id, reason: 'missing_required_fields' });\n    continue;\n  }\n  if (publishedIds.has(pin.id)) {\n    staticData.skipped.push({ index: i, id: pin.id, reason: 'already_published' });\n    continue;\n  }\n  if (queue.length >= cfg.pinsPerRun) {\n    throttled++;\n    continue;\n  }\n\n  const boardId = boardByName.get(normaliseBoardName(pin.boardSuggestion)) || cfg.defaultBoardId;\n  if (!boardId) {\n    staticData.skipped.push({ index: i, id: pin.id, reason: 'no_board_match', boardSuggestion: pin.boardSuggestion });\n    continue;\n  }\n\n  // Optional host swap (e.g. moving from a staging URL to production without\n  // regenerating every pin record).\n  let link = pin.link;\n  if (cfg.linkHostOverride) {\n    try {\n      const u = new URL(link);\n      const override = new URL(cfg.linkHostOverride);\n      u.protocol = override.protocol;\n      u.host = override.host;\n      link = u.toString();\n    } catch (_) { /* leave link as-is on parse error */ }\n  }\n\n  // Pinterest pin description ceiling is 800 chars; trim safely.\n  const description = String(pin.description || pin.textOverlay || pin.title).slice(0, 800);\n  const altText = String(pin.textOverlay || pin.title).slice(0, 500);\n  const title = String(pin.title).slice(0, 100);\n\n  queue.push({\n    json: {\n      pinId: pin.id,\n      boardId,\n      payload: {\n        link,\n        title,\n        description,\n        alt_text: altText,\n        board_id: boardId,\n        media_source: { source_type: 'image_url', url: pin.sourceImage }\n      }\n    },\n    pairedItem: { item: i }\n  });\n}\n\nstaticData.throttled = throttled;\n\nif (queue.length === 0) {\n  // Soft success — emit a single sentinel item so Aggregate runs.\n  return [{ json: { __empty: true } }];\n}\n\nreturn queue;"
+      },
+      "id": "n06-queue",
+      "name": "Build Publish Queue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "n07-loop",
+      "name": "Loop Over Pins",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1140,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pinterest.com/v5/pins",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.PINTEREST_ACCESS_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n08-create-pin",
+      "name": "Pinterest Create Pin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// RECORD PUBLISHED PIN\n// ====================\n// Runs immediately after Pinterest Create Pin. Picks up either a successful\n// pin response (has id, board_id) or an error (status >= 400 or .code).\n\nconst item = $input.first().json;\nconst queueItem = $('Loop Over Pins').first().json;\nconst pinId = queueItem.pinId;\nconst staticData = $getWorkflowStaticData('global');\n\nconst failed = item && (item.code || item.error || (item.status && item.status >= 400));\n\nif (failed) {\n  staticData.failed.push({\n    pinId,\n    reason: 'pinterest_api_error',\n    detail: item.message || item.error || JSON.stringify(item).slice(0, 500)\n  });\n  return [{\n    json: { pinId, published: false, error: item.message || 'pinterest_error' },\n    pairedItem: { item: 0 }\n  }];\n}\n\nconst pinterestId = item.id || null;\nstaticData.processed.push({\n  pinId,\n  pinterestPinId: pinterestId,\n  boardId: queueItem.boardId,\n  publishedAt: new Date().toISOString()\n});\n\nreturn [{\n  json: {\n    pinId,\n    pinterestPinId: pinterestId,\n    boardId: queueItem.boardId,\n    publishedAt: new Date().toISOString(),\n    published: true\n  },\n  pairedItem: { item: 0 }\n}];"
+      },
+      "id": "n09-record",
+      "name": "Record Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PUBLISHED_INGEST_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.PUBLISHED_INGEST_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pinId: $json.pinId, pinterestPinId: $json.pinterestPinId, boardId: $json.boardId, publishedAt: $json.publishedAt, published: $json.published, error: $json.error || null }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n10-append-log",
+      "name": "Append to Published Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "maxItems": 1
+      },
+      "id": "n11-limit-done",
+      "name": "Limit (Done Branch)",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// AGGREGATE RESULTS\n// =================\n\nconst staticData = $getWorkflowStaticData('global');\nconst processed = staticData.processed || [];\nconst failed = staticData.failed || [];\nconst skipped = staticData.skipped || [];\n\nreturn [{\n  json: {\n    summary: {\n      pins_published: processed.length,\n      failed: failed.length,\n      skipped_already_published: skipped.filter(s => s.reason === 'already_published').length,\n      skipped_no_board: skipped.filter(s => s.reason === 'no_board_match').length,\n      skipped_invalid: skipped.filter(s => s.reason === 'missing_required_fields').length,\n      throttled: staticData.throttled || 0,\n      boards_available: (staticData.boardsAvailable || []).length\n    },\n    batchId: staticData.batchId,\n    boards_available: staticData.boardsAvailable || [],\n    processed,\n    failed,\n    skipped,\n    started_at: staticData.started_at || null,\n    finished_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n12-aggregate",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        560
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule (09:00 UTC)": {
+      "main": [
+        [
+          {
+            "node": "Load Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Pins",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Published Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "List Pinterest Boards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Pins": {
+      "main": [
+        [
+          {
+            "node": "Build Publish Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Published Log": {
+      "main": [
+        [
+          {
+            "node": "Build Publish Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Pinterest Boards": {
+      "main": [
+        [
+          {
+            "node": "Build Publish Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Publish Queue": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Pins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Pins": {
+      "main": [
+        [
+          {
+            "node": "Limit (Done Branch)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pinterest Create Pin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinterest Create Pin": {
+      "main": [
+        [
+          {
+            "node": "Record Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Result": {
+      "main": [
+        [
+          {
+            "node": "Append to Published Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Published Log": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Pins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit (Done Branch)": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

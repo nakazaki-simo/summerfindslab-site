@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "G": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://backend.composio.dev/v3/mcp/354c1176-590a-4851-bc36-cf3b6a875b58/mcp?user_id=4332c8fc-744e-433e-8ed6-60defff92965&connected_account_id=ca_MaoOQTL6wl0E"
+      ],
+      "env": {}
+    }
+  }
+}
