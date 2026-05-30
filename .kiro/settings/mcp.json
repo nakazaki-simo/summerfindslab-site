@@ -1,0 +1,46 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "env": { "CONTEXT7_API_KEY": "ctx7sk-643814e1-3449-4ee2-8b9f-5f854e038a94" },
+      "disabled": false,
+      "autoApprove": ["resolve-library-id", "get-library-docs"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": []
+    },
+    "firecrawl": {
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": { "FIRECRAWL_API_KEY": "fc-6cd60215bf1b4d9f850913796e948ff0" },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "exa-mcp-server"],
+      "env": { "EXA_API_KEY": "fcf1b2fb-49ef-49bd-b238-88a3d2c66603" },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "vercel": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.vercel.com", "--transport", "http-only"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": []
+    },
+    "magic": {
+      "command": "npx",
+      "args": ["-y", "@21st-dev/magic@latest", "API_KEY=\"054e4aa8c6126e318c25a394feee97f42ac639c8671fdc67d17a6c30e721dedf\""],
+      "env": {},
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
