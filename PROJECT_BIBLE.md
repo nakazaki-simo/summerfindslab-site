@@ -1,6 +1,6 @@
 # PROJECT BIBLE — Summer Finds Lab Daily
 
-> **Document version:** v1.0
+> **Document version:** v1.1
 > **Last updated:** 2026-05-30
 > **Maintainer:** nakazaki-simo
 > **Repo:** `nakazaki-simo/summerfindslab-site`
@@ -59,7 +59,9 @@ You are the **Lead Full-Stack + Automation Engineer for Summer Finds Lab Daily**
 ## SECTION 1 — PROJECT IDENTITY
 
 - **Name:** Summer Finds Lab Daily
-- **Domain:** `https://summerfindslab.com` (configured in `lib/site.js`; **not yet deployed**)
+- **Live URL:** `https://summerfindslab-site.vercel.app/` (deployed on Vercel, HTTP 200).
+- **Intended domain:** `https://summerfindslab.com` (set in `lib/site.js`; **DNS not resolving yet** —
+  canonical/OG point here but it 404s at the registrar/DNS level. See §11 #8.)
 - **Tagline:** "Daily drops of trending summer must-haves."
 - **Elevator pitch:** A Pinterest-style Amazon-affiliate publisher for trending
   summer products — gadgets, beach gear, viral TikTok finds, aesthetic-room items,
@@ -322,23 +324,32 @@ All data is flat JSON in `data/`. The site reads it at build/serve time.
 - Pins generated: `data/pinterest-pins.json` (1573 lines).
 - Product import ran once on the 2026-05-28 batch (`content/cache/amazon-images.json`).
 - `lib/site.js`: domain set to `summerfindslab.com`, social = null, editor persona scaffolded.
+- **Amazon Associates: APPROVED.** Real affiliate tag is live in `data/products.json`
+  (`amzn.to/*` short links). Outbound links carry the operator's tag.
+- **n8n instance: HOSTED + reachable.** Workflows can be imported/run against it.
+- **Site DEPLOYED to Vercel:** live at `https://summerfindslab-site.vercel.app/` (HTTP 200).
+- **`robots.txt`:** now enumerates AI crawlers (GPTBot, ClaudeBot, OAI-SearchBot, Bingbot, …) —
+  this resolves audit M4.
 
 #### 🟡 IN PROGRESS / built-but-not-live
-- **Amazon Associates:** products have `affiliateUrl`, but verify the real Associates tag
-  and account approval. README still references `YOUR-AFFILIATE-ID`.
 - **Canva:** code complete; `.env.example` keys empty → not OAuth-connected. Free CSV path works.
-- **Pinterest publishing:** workflows ready; need `PINTEREST_ACCESS_TOKEN` (approval-gated)
-  + a hosted n8n. `pinterest-published.json` is empty.
+- **Pinterest publishing:** workflows ready + n8n hosted; **next step = add `PINTEREST_ACCESS_TOKEN`**
+  (scopes: `boards:read pins:read pins:write user_accounts:read`) into n8n so WF-04/04b/04c run.
+  `pinterest-published.json` is still empty.
 - **GEO audit fixes:** done = C1 (domain), C2 (llms.txt), C3 (social null), H2 (author),
   H7/M5 (programmatic pages). Pending = H1 (800-word posts), H4 (aggregateRating),
   H5 (above-fold disclosure), remove fake press strip, most M-tier.
 
 #### 🔴 BROKEN / KNOWN ISSUES
-- See §11 Failure Log. Headline: Vercel read-only FS for ingest; WF-01 field-name mismatch.
+- **Canonical/DNS mismatch (P0):** live site is `summerfindslab-site.vercel.app` but every
+  canonical/OG/sitemap URL points to `summerfindslab.com`, which does not resolve yet. AI/search
+  crawlers will dedupe to a dead host. Fix: attach `summerfindslab.com` in Vercel **or** temporarily
+  set `siteConfig.url` to the vercel.app URL until the domain is connected. See §11 #8.
+- Vercel runtime read-only FS for ingest; WF-01 field-name mismatch. See §11.
 
 #### ▪ NOT STARTED
-- Deploy to Vercel + custom domain.
-- Host n8n + create credentials + first real end-to-end run.
+- Connect custom domain `summerfindslab.com` (DNS → Vercel).
+- Create n8n credentials + first real end-to-end run (instance is up; wiring pending).
 - New ingest endpoints WF-01/WF-02 need: `/api/products/upsert`, `/api/products/import`,
   `/api/pins/ingest`, `/api/health`, `/api/pins/queue`, `/api/pins/mark-published`.
 - WF-03 Canva Materializer (3 nodes), WF-05 analytics loop.
@@ -358,7 +369,7 @@ All data is flat JSON in `data/`. The site reads it at build/serve time.
 | T-01 | Remove fake "As seen in" press strip + invented review counts | P0 | — | No unearned authority claims anywhere; FTC-clean |
 | T-02 | Confirm/insert real Amazon Associates tag in all `affiliateUrl`s | P0 | Associates approval | Links carry the live tag; outbound click tracked |
 | T-03 | Add above-the-fold affiliate disclosure (audit H5) | P0 | — | Visible disclosure near first affiliate link on every page |
-| T-04 | Deploy to Vercel + point `summerfindslab.com` | P0 | T-01..T-03 | Live site at the real domain; metadata resolves |
+| T-04 | Connect `summerfindslab.com` DNS to Vercel (site already live on vercel.app) | P0 | — | `summerfindslab.com` resolves; canonical/OG no longer point at a dead host |
 | T-05 | Expand 3 blog posts to 800+ words, author byline (H1/H6) | P1 | — | `articleBody`/`wordCount` in JSON-LD; named author |
 | T-06 | Add `aggregateRating` to `productLd` (H4) | P1 | — | Product schema emits editorial rating |
 | T-07 | Add ingest endpoints (`/api/products/upsert`, `/api/pins/ingest`, `/api/health`) | P1 | T-04 | n8n can write back via GitHub Contents API |
@@ -398,6 +409,7 @@ on a branch with a PR · §8 + §11 updated.
 | 5 | Canonical URL leaked `example.com` everywhere | placeholder domain in `lib/site.js` | Fixed → `summerfindslab.com` (audit C1) | One domain constant feeds all metadata |
 | 6 | Fake "As seen in" press strip | aspirational copy in hero | T-01 — must remove before launch | No unearned authority claims (FTC) |
 | 7 | OAuth `state_mismatch` on Canva callback | start-cookie expires after 10 min | Re-hit `/api/canva/oauth/start` | Documented in `docs/CANVA_INTEGRATION.md` §7 |
+| 8 | Live site canonical points to a non-resolving domain | Site deployed to `vercel.app` but `siteConfig.url` = `summerfindslab.com`, which has no DNS yet | OPEN (T-04): attach the domain in Vercel, or temporarily set `siteConfig.url` to the vercel.app URL | Don't set the canonical to a domain before its DNS is live |
 
 ---
 
@@ -468,10 +480,16 @@ npm run canva:generate -- --formula=price-tag-find --limit=5   # Enterprise path
 
 ## SECTION 15 — OPEN QUESTIONS / RISKS
 
-- Is an n8n instance actually hosted/connected yet, or only workflow JSON in the repo? (confirm)
-- Amazon Associates account approval status + the real tag value?
-- Pinterest API access — applied / approved?
-- Persistence choice for ingest on Vercel: GitHub Contents API vs Vercel KV vs Supabase?
+**Resolved (2026-05-30):**
+- ✅ n8n is hosted and reachable.
+- ✅ Amazon Associates approved; real affiliate tag live in `data/products.json`.
+- ✅ Site is deployed on Vercel (`summerfindslab-site.vercel.app`).
+
+**Still open:**
+- 🔴 `summerfindslab.com` DNS is not connected to Vercel yet → canonical/OG point at a dead
+  host (T-04, §11 #8). Highest-priority risk right now.
+- 🟡 Pinterest API token not yet added to n8n → WF-04/04b/04c can't publish (T-10).
+- Persistence choice for ingest on Vercel (read-only FS): GitHub Contents API vs Vercel KV vs Supabase? (T-07)
 - The `sync/full-local-state-2026-05-30` branch is a handoff branch — decide its fate
   (merge the real work into a clean branch; never leave secrets in long-lived history).
 
