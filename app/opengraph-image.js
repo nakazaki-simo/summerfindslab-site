@@ -69,7 +69,7 @@ export default async function Image() {
                         color: "#1f2a37"
                     }}
                 >
-                    <div>summerfindslab.example.com</div>
+                    <div>{siteConfig.url.replace(/^https?:\/\//, "")}</div>
                     <div style={{ display: "flex", gap: 8 }}>
                         <span>☀️</span>
                         <span>Summer 2026</span>
