@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Refresh Project Bible",
+  "description": "Weekly review: re-checks PROJECT_BIBLE.md §8 State Snapshot, §9 Task Queue, and §11 Failure Log against the live git state, Vercel deployment, and data/*.json counts, then updates the markers and version line.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Refresh PROJECT_BIBLE.md against reality. Do the following, then report what changed in 3-5 bullets:\n\n1. Run `git rev-parse --abbrev-ref HEAD`, `git log --oneline -12`, and `git branch -a`. Determine whether `main` is still behind `geo-upgrade-finds-pages` (the stale-main issue, T-001) and whether the `sync/*` secret branch still exists (T-002).\n2. Run `node -e \"const p=require('./data/products.json'); console.log(p.length, [...new Set(p.map(x=>x.category))].join(','))\"` to get the current product count and populated categories. Re-check whether `tiktok-finds` still has 0 products.\n3. Read PROJECT_BIBLE.md §8 (Current State Snapshot), §9 (Task Queue), and §11 (Failure Log).\n4. Update the ✓/🟡/●/▪ markers in §8, check off or re-prioritize tasks in §9, and add any newly-fixed bugs to §11. Only change lines that are now inaccurate — preserve everything else verbatim.\n5. Bump the `Document version` and `Last updated` line at the top (MINOR for task/content changes, MAJOR for architecture/ADR changes) and add a one-line changelog note.\n\nCode wins on conflicts — when the repo disagrees with the Bible, update the Bible. Do not invent status you cannot verify from git, the filesystem, or a command; mark anything unverifiable as [TO BE FILLED BY USER]. Do not push to main, install dependencies, or rotate any secrets as part of this hook."
+  }
+}

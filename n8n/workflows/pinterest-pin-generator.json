@@ -1,0 +1,418 @@
+{
+  "name": "Pinterest Pin Variant Generator",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "n01-manual-trigger",
+      "name": "Start - Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// LOAD CONFIG\n// ===========\n// Centralises every tunable. Anything you'd want to tweak per-run lives here.\n//\n// FORMULAS mirror lib/pin-pipeline/templates.js in the website repo. Order\n// matters — we let Claude pick the top N by 'fit' but always start from this\n// canonical list so we never invent a formula the Canva template registry\n// can't render.\n\nconst FORMULAS = [\n  { id: 'price-tag-find',       label: 'Price Tag Find',          aspectRatio: '2:3 (1000x1500)', layout: 'Bold price tag overlay on a clean product cutout. Pin reads in <1s.', palette: 'high-contrast cream + neon sticker', ctrLevers: ['price anchor','urgency','clean product cutout'] },\n  { id: 'headline-stat',        label: 'Headline + Social Stat',  aspectRatio: '2:3 (1000x1500)', layout: 'Split: 60% editorial photo, 40% headline + star rating + review count.', palette: 'editorial neutrals', ctrLevers: ['social proof','authority','clear value claim'] },\n  { id: 'neon-sticker-tiktok',  label: 'TikTok Neon Sticker Stack',aspectRatio: '2:3 (1000x1500)', layout: 'Lifestyle photo + 2-3 neon-coloured stickers stacked at angles.', palette: 'neon highlight on muted base', ctrLevers: ['scroll-stop','viral language','playful'] },\n  { id: 'aesthetic-lifestyle',  label: 'Aesthetic Lifestyle Scene',aspectRatio: '2:3 (1000x1500)', layout: 'Full-bleed cinematic lifestyle scene. Tiny watermark only.', palette: 'natural film palette - bias warm', ctrLevers: ['aspiration','no-text save','scene completeness'] },\n  { id: 'bold-number-list',     label: 'Bold Number List',         aspectRatio: '2:3 (1000x1500)', layout: 'Oversized number + listicle headline + product moodboard.', palette: 'editorial pastel', ctrLevers: ['list curiosity','save signal'] },\n  { id: 'curiosity-gap',        label: 'Curiosity Gap',            aspectRatio: '2:3 (1000x1500)', layout: 'Half-hidden product + intrigue headline.', palette: 'moody warm', ctrLevers: ['mystery','open loop'] },\n  { id: 'this-vs-that',         label: 'This vs That',             aspectRatio: '2:3 (1000x1500)', layout: 'Side-by-side comparison split.', palette: 'clean editorial', ctrLevers: ['comparison','decision-making'] },\n  { id: 'moodboard-grid',       label: 'Moodboard Grid',           aspectRatio: '2:3 (1000x1500)', layout: '2x3 product grid with single italic headline.', palette: 'soft pastel', ctrLevers: ['edit/curation','save signal'] },\n  { id: 'tutorial-stepper',     label: 'Tutorial Stepper',         aspectRatio: '2:3 (1000x1500)', layout: 'Numbered 3-step explainer.', palette: 'clean white', ctrLevers: ['utility','save for later'] },\n  { id: 'secret-roundup',       label: 'Secret Roundup',           aspectRatio: '2:3 (1000x1500)', layout: 'Lifestyle photo + GATEKEPT/SECRET sticker tag.', palette: 'moody warm', ctrLevers: ['exclusivity','curiosity'] }\n];\n\nconst formulasPerProduct = Math.max(1, Math.min(FORMULAS.length,\n  Number($env.FORMULAS_PER_PRODUCT || 3)\n));\n\nconst batchId = $env.PINS_BATCH_ID || ('summer-2026-batch-' +\n  new Date().toISOString().slice(0, 10).replace(/-/g, '').slice(2, 8));\n\nreturn [{\n  json: {\n    formulas: FORMULAS,\n    formulasPerProduct,\n    batchId,\n    siteUrl: ($env.SITE_URL || 'https://summerfindslab.com').replace(/\\/+$/, ''),\n    productsUrl: $env.PRODUCTS_JSON_URL || '',\n    existingPinsUrl: $env.EXISTING_PINS_JSON_URL || '',\n    started_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n02-load-config",
+      "name": "Load Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.PRODUCTS_JSON_URL}}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n03-fetch-products",
+      "name": "Fetch Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        320
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.EXISTING_PINS_JSON_URL || 'https://example.invalid/empty.json'}}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n04-fetch-existing-pins",
+      "name": "Fetch Existing Pins",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        480
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// FILTER UNPINNED\n// ===============\n// Inputs:\n//   - $('Fetch Products').first().json      = array of products (or {body:[...]})\n//   - $('Fetch Existing Pins').first().json = optional array of existing pins\n//   - $('Load Config').first().json         = config bundle\n//\n// Output: one item per product still needing pins, with config attached.\n\nfunction asArray(payload) {\n  if (Array.isArray(payload)) return payload;\n  if (payload && Array.isArray(payload.body)) return payload.body;\n  if (payload && Array.isArray(payload.data)) return payload.data;\n  return [];\n}\n\nconst cfg = $('Load Config').first().json;\nconst products = asArray($('Fetch Products').first().json);\nconst existingPins = asArray($('Fetch Existing Pins').first().json);\n\n// Index existing pins by product id (matches data/pinterest-pins.json shape).\nconst pinnedProductIds = new Set();\nfor (const pin of existingPins) {\n  if (pin && pin.productId) pinnedProductIds.add(pin.productId);\n  // Some pins reference category instead of a product — skip those.\n}\n\n// Reset cross-iteration accumulator before the loop runs.\nconst staticData = $getWorkflowStaticData('global');\nstaticData.processed = [];\nstaticData.failed = [];\nstaticData.skipped = [];\nstaticData.batchId = cfg.batchId;\nstaticData.started_at = cfg.started_at;\nstaticData.formulas = cfg.formulas;\n\nconst out = [];\nlet pinSequence = (existingPins.length || 0) + 1;\n\nfor (let i = 0; i < products.length; i++) {\n  const p = products[i] || {};\n  const id = p.id;\n\n  // Required fields. We won't try to pin anything missing core data.\n  if (!id || !p.title || !p.image) {\n    staticData.skipped.push({ index: i, id: id || null, reason: 'missing_required_fields' });\n    continue;\n  }\n  if (pinnedProductIds.has(id)) {\n    staticData.skipped.push({ index: i, id, reason: 'already_pinned' });\n    continue;\n  }\n\n  out.push({\n    json: {\n      product: {\n        id,\n        title: p.title,\n        description: p.description || '',\n        brand: p.brand || '',\n        price: p.price ?? null,\n        category: p.category || 'summer-gadgets',\n        tags: Array.isArray(p.tags) ? p.tags : [],\n        image: p.image,\n        affiliateUrl: p.affiliateUrl || '',\n        rating: p.rating || null\n      },\n      config: cfg,\n      pinSequenceStart: pinSequence\n    },\n    pairedItem: { item: i }\n  });\n  pinSequence += cfg.formulasPerProduct;\n}\n\nif (out.length === 0) {\n  throw new Error('No products to pin. Skipped ' + staticData.skipped.length +\n    '. Check PRODUCTS_JSON_URL and EXISTING_PINS_JSON_URL.');\n}\n\nreturn out;"
+      },
+      "id": "n05-filter-unpinned",
+      "name": "Filter Unpinned",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "n06-loop",
+      "name": "Loop Over Products",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1080,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD PIN PROMPT\n// ================\n// Asks Claude for N pin variants (one per chosen formula) in strict JSON.\n// We pass the formulas the site actually supports so Claude can't invent one.\n\nconst item = $input.first().json;\nconst { product, config } = item;\n\nconst formulasShortlist = config.formulas\n  .slice(0, config.formulasPerProduct)\n  .map(f => '- ' + f.id + ' (' + f.label + '): ' + f.layout)\n  .join('\\n');\n\nconst formulaIds = config.formulas\n  .slice(0, config.formulasPerProduct)\n  .map(f => f.id);\n\nconst userPrompt = [\n  'You are a Pinterest growth strategist for a summer-finds affiliate site.',\n  '',\n  'Generate ONE pin variant for EACH of these visual formulas:',\n  formulasShortlist,\n  '',\n  'Return STRICT JSON only (no prose, no markdown fences) with this exact shape:',\n  '',\n  '{',\n  '  \"variants\": [',\n  '    {',\n  '      \"formulaId\": \"<one of: ' + formulaIds.join(', ') + '>\",',\n  '      \"title\": \"<pin title under 100 chars, hook-first, lower-case Pinterest voice>\",',\n  '      \"textOverlay\": \"<text that goes ON the pin, max 6 words, punchy>\",',\n  '      \"secondaryStickers\": [\"<sticker 1>\",\"<sticker 2>\"],',\n  '      \"description\": \"<150-300 char Pinterest description with 4-6 hashtags inline>\",',\n  '      \"hashtags\": [\"#tag1\",\"#tag2\",\"#tag3\",\"#tag4\",\"#tag5\"],',\n  '      \"cta\": \"<short CTA, 2-4 words>\",',\n  '      \"boardSuggestion\": \"<board name | Summer Finds Lab>\",',\n  '      \"canvaPrompt\": \"<exact instructions for the Canva designer in 1-2 sentences>\",',\n  '      \"imagePrompt\": \"<photoreal AI image prompt, vertical 2:3, --ar 2:3 --style raw>\",',\n  '      \"lifestylePrompt\": \"<cinematic lifestyle scene prompt, vertical 2:3>\"',\n  '    }',\n  '  ]',\n  '}',\n  '',\n  'You MUST return exactly ' + config.formulasPerProduct + ' variants, one per formulaId in the order listed.',\n  '',\n  'Product:',\n  '- ID: ' + product.id,\n  '- Title: ' + product.title,\n  '- Brand: ' + (product.brand || 'unknown'),\n  '- Price: ' + (product.price != null ? '$' + product.price : 'unknown'),\n  '- Category: ' + product.category,\n  '- Tags: ' + (product.tags.join(', ') || 'none'),\n  '- Description: ' + (product.description || '(none)'),\n  '- Image URL: ' + product.image,\n  '',\n  'Return ONLY the JSON object. Do not wrap it in code fences.'\n].join('\\n');\n\nreturn [{\n  json: {\n    productId: product.id,\n    product,\n    config,\n    pinSequenceStart: item.pinSequenceStart,\n    user_prompt: userPrompt\n  }\n}];"
+      },
+      "id": "n07-build-prompt",
+      "name": "Build Pin Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ANTHROPIC_API_KEY}}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.CLAUDE_MODEL || 'claude-opus-4-20250514', max_tokens: 2500, messages: [{ role: 'user', content: $json.user_prompt }] }) }}",
+        "options": {
+          "timeout": 90000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n08-claude-api",
+      "name": "Call Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// PARSE PIN VARIANTS\n// ==================\n// Tolerant to: HTTP errors flowing through, markdown fences, prose around JSON.\n\nconst item = $input.first().json;\nconst upstream = $('Build Pin Prompt').first().json;\nconst { product, config, pinSequenceStart } = upstream;\nconst productId = product.id;\nconst staticData = $getWorkflowStaticData('global');\n\n// 1. Detect HTTP-level failure carried through by the HTTP Request node.\nconst looksLikeError = item && (item.error || (item.statusCode && item.statusCode >= 400));\nif (looksLikeError) {\n  const detail = item.error || item.message || ('status ' + item.statusCode);\n  staticData.failed.push({ productId, reason: 'claude_api_error', detail });\n  return [{\n    json: { productId, product, config, pinSequenceStart, claude_failed: true, claude_error: String(detail) },\n    pairedItem: { item: 0 }\n  }];\n}\n\n// 2. Extract the assistant text from the Anthropic Messages API response.\nlet rawText = '';\nif (Array.isArray(item.content) && item.content[0] && typeof item.content[0].text === 'string') {\n  rawText = item.content[0].text;\n} else if (typeof item.text === 'string') {\n  rawText = item.text;\n} else {\n  rawText = JSON.stringify(item);\n}\n\n// 3. Strip code fences and extract the first {...} block.\nlet cleaned = rawText.trim()\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nconst firstBrace = cleaned.indexOf('{');\nconst lastBrace = cleaned.lastIndexOf('}');\nif (firstBrace !== -1 && lastBrace > firstBrace) {\n  cleaned = cleaned.slice(firstBrace, lastBrace + 1);\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  staticData.failed.push({\n    productId,\n    reason: 'invalid_json',\n    detail: e.message,\n    raw: rawText.slice(0, 500)\n  });\n  return [{\n    json: {\n      productId, product, config, pinSequenceStart,\n      claude_failed: true, claude_error: 'invalid_json',\n      raw_response: rawText.slice(0, 500)\n    },\n    pairedItem: { item: 0 }\n  }];\n}\n\n// 4. Defensive shape: ensure we always emit an array of variants.\nconst variants = Array.isArray(parsed.variants) ? parsed.variants : [];\nif (variants.length === 0) {\n  staticData.failed.push({ productId, reason: 'no_variants' });\n  return [{\n    json: { productId, product, config, pinSequenceStart, claude_failed: true, claude_error: 'no_variants' },\n    pairedItem: { item: 0 }\n  }];\n}\n\nreturn [{\n  json: { productId, product, config, pinSequenceStart, variants, claude_failed: false },\n  pairedItem: { item: 0 }\n}];"
+      },
+      "id": "n09-parse-variants",
+      "name": "Parse Pin Variants",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// STRUCTURE PIN RECORDS\n// =====================\n// Shapes Claude's output into records that drop straight into\n// data/pinterest-pins.json (matches the existing schema).\n\nconst item = $input.first().json;\nconst { productId, product, config, pinSequenceStart, variants, claude_failed, claude_error } = item;\nconst staticData = $getWorkflowStaticData('global');\n\nif (claude_failed) {\n  staticData.processed.push({ productId, status: 'needs_review', error: claude_error });\n  return [{\n    json: { productId, status: 'needs_review', error: claude_error, pins: [] },\n    pairedItem: { item: 0 }\n  }];\n}\n\nconst formulaById = Object.fromEntries(config.formulas.map(f => [f.id, f]));\nconst utm = '?utm_source=pinterest&utm_medium=social&utm_campaign=' + config.batchId;\nconst productLink = config.siteUrl + '/finds/' + productId + utm;\n\nconst pins = [];\nfor (let i = 0; i < variants.length; i++) {\n  const v = variants[i] || {};\n  const formula = formulaById[v.formulaId] || config.formulas[i] || config.formulas[0];\n  const seq = String(pinSequenceStart + i).padStart(3, '0');\n\n  pins.push({\n    kind: 'product',\n    productId,\n    formulaId: formula.id,\n    formulaLabel: formula.label,\n    aspectRatio: formula.aspectRatio,\n    title: String(v.title || product.title).slice(0, 100),\n    boardSuggestion: v.boardSuggestion || (product.category.replace(/-/g, ' ') + ' | Summer Finds Lab'),\n    link: productLink,\n    sourceImage: product.image,\n    textOverlay: v.textOverlay || product.title,\n    secondaryStickers: Array.isArray(v.secondaryStickers) ? v.secondaryStickers.slice(0, 3) : [],\n    layout: formula.layout,\n    palette: formula.palette,\n    fonts: 'See Canva template (' + formula.id + ').',\n    canvaPrompt: v.canvaPrompt || '',\n    imagePrompt: v.imagePrompt || '',\n    lifestylePrompt: v.lifestylePrompt || '',\n    description: v.description || '',\n    hashtags: Array.isArray(v.hashtags) ? v.hashtags.slice(0, 8) : [],\n    cta: v.cta || 'Tap to shop',\n    ctrLevers: formula.ctrLevers,\n    id: 'pin-' + seq + '-' + formula.id,\n    batch: config.batchId\n  });\n}\n\nstaticData.processed.push({ productId, status: 'ok', count: pins.length });\n\nreturn [{\n  json: { productId, status: 'ok', pins },\n  pairedItem: { item: 0 }\n}];"
+      },
+      "id": "n10-structure",
+      "name": "Structure Pin Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PINS_INGEST_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.PINS_INGEST_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ productId: $json.productId, status: $json.status, pins: $json.pins }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n11-insert-pins",
+      "name": "Insert Pins",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2180,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "maxItems": 1
+      },
+      "id": "n12-limit-done",
+      "name": "Limit (Done Branch)",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// AGGREGATE RESULTS\n// =================\n\nconst staticData = $getWorkflowStaticData('global');\nconst processed = staticData.processed || [];\nconst failed = staticData.failed || [];\nconst skipped = staticData.skipped || [];\n\nconst ok = processed.filter(p => p.status === 'ok');\nconst needsReview = processed.filter(p => p.status === 'needs_review');\nconst totalPins = ok.reduce((sum, p) => sum + (p.count || 0), 0);\n\nreturn [{\n  json: {\n    summary: {\n      products_in: processed.length + skipped.length,\n      products_ok: ok.length,\n      pins_generated: totalPins,\n      needs_review: needsReview.length,\n      failed: failed.length,\n      skipped: skipped.length\n    },\n    batchId: staticData.batchId,\n    processed,\n    failed,\n    skipped,\n    started_at: staticData.started_at || null,\n    finished_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n13-aggregate",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        560
+      ]
+    }
+  ],
+  "connections": {
+    "Start - Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Products": {
+      "main": [
+        [
+          {
+            "node": "Fetch Existing Pins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Existing Pins": {
+      "main": [
+        [
+          {
+            "node": "Filter Unpinned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Unpinned": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Products": {
+      "main": [
+        [
+          {
+            "node": "Limit (Done Branch)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Pin Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pin Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Claude API": {
+      "main": [
+        [
+          {
+            "node": "Parse Pin Variants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Pin Variants": {
+      "main": [
+        [
+          {
+            "node": "Structure Pin Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structure Pin Records": {
+      "main": [
+        [
+          {
+            "node": "Insert Pins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Pins": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit (Done Branch)": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

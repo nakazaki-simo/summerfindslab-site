@@ -1,0 +1,3 @@
+# Daily Opportunity Intelligence reports land here.
+# Written by WF-06 via POST /api/opportunities/ingest.
+# Read by next-day WF-06 via GET /api/opportunities/latest.

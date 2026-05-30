@@ -1,0 +1,536 @@
+{
+  "name": "Opportunity Intelligence System",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "n01-schedule",
+      "name": "Daily 06:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "n01b-manual",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// LOAD CONFIG\n// ===========\n// Centralises every tunable. The downstream Code nodes read `config` from\n// this single item, so changing one weight or the daily Top-N is a one-line\n// edit here — no other node has hard-coded numbers.\n\nconst today = new Date().toISOString().slice(0, 10);\n\n// Scoring weights. Numbers must sum to 100 inside each axis.\nconst WEIGHTS = {\n  pinterest: {\n    trendingTagMatch: 35,    // product tags match today's Pinterest trending keywords\n    categorySignal:   20,    // product category appears in Pinterest trend list\n    pinGap:           20,    // product has 0 pins yet -> full opportunity\n    visualBand:       15,    // has image + price in the Pinterest sweet spot ($15-$50)\n    novelty:          10     // imported in last 14 days\n  },\n  affiliate: {\n    amazonCategoryHeat: 30,  // category appears in Amazon Movers & Shakers / Best Sellers\n    ratingSignal:       25,  // rating.value * normalised review count\n    priceBand:          20,  // under-25 + tag match scores highest\n    tagBoost:           15,  // trending / tiktok / viral tags\n    asinPresence:       10   // has asin -> trackable, full attribution\n  }\n};\n\nconst TOP_N = Math.max(5, Math.min(50, Number($env.OPPORTUNITY_TOP_N || 10)));\n\n// Pinterest Trends page Firecrawl will scrape with JSON extraction.\nconst PINTEREST_TRENDS_URL = 'https://trends.pinterest.com/?country=US';\n\n// Amazon Movers & Shakers — daily-updated category-level momentum signal.\nconst AMAZON_TRENDS_URL = 'https://www.amazon.com/gp/movers-and-shakers/';\n\nreturn [{\n  json: {\n    today,\n    weights: WEIGHTS,\n    topN: TOP_N,\n    pinterestTrendsUrl: PINTEREST_TRENDS_URL,\n    amazonTrendsUrl: AMAZON_TRENDS_URL,\n    productsUrl: $env.PRODUCTS_JSON_URL || '',\n    existingPinsUrl: $env.EXISTING_PINS_JSON_URL || '',\n    historyUrl: $env.OPPORTUNITY_HISTORY_URL || '',\n    started_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n02-load-config",
+      "name": "Load Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.FIRECRAWL_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"url\":\"https://trends.pinterest.com/?country=US\",\"formats\":[{\"type\":\"json\",\"prompt\":\"Extract the trending Pinterest searches and categories visible on this page. Return up to 30 trending keywords (single words or short phrases) and up to 15 trending category labels. Only include real trending items shown on the page.\",\"schema\":{\"type\":\"object\",\"properties\":{\"keywords\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"categories\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}},\"required\":[\"keywords\"]}}],\"onlyMainContent\":true,\"proxy\":\"auto\",\"waitFor\":4000,\"maxAge\":21600000}",
+        "options": {
+          "timeout": 90000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n03-fetch-pinterest-trends",
+      "name": "Fetch Pinterest Trends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        200
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.FIRECRAWL_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"url\":\"https://www.amazon.com/gp/movers-and-shakers/\",\"formats\":[{\"type\":\"json\",\"prompt\":\"Extract Amazon Movers & Shakers signals from this page. Return up to 15 category labels visible on the page and up to 25 top items, each with title, asin (if visible) and rank.\",\"schema\":{\"type\":\"object\",\"properties\":{\"categories\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"asin\":{\"type\":\"string\"},\"rank\":{\"type\":\"integer\"}},\"required\":[\"title\"]}}},\"required\":[\"items\"]}}],\"onlyMainContent\":true,\"proxy\":\"auto\",\"waitFor\":4000,\"maxAge\":21600000}",
+        "options": {
+          "timeout": 90000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n04-fetch-amazon-trends",
+      "name": "Fetch Amazon Movers & Shakers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        360
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.PRODUCTS_JSON_URL}}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n05-fetch-products",
+      "name": "Fetch Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        520
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.EXISTING_PINS_JSON_URL || 'https://example.invalid/empty.json'}}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n06-fetch-pins",
+      "name": "Fetch Existing Pins",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        680
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.OPPORTUNITY_HISTORY_URL || 'https://example.invalid/empty.json'}}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n07-fetch-history",
+      "name": "Fetch Yesterday's Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        840
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// SCORE & RANK\n// ============\n// Deterministic, explainable scoring. Every product gets two scores 0-100\n// and a per-axis breakdown, so the daily report can show *why* something\n// ranked. No AI here — keeps the scores reproducible across days.\n//\n// Inputs (all are upstream HTTP nodes):\n//   $('Fetch Pinterest Trends').first().json.data.json  -> { keywords:[], categories:[] }\n//   $('Fetch Amazon Movers & Shakers').first().json.data.json -> { categories:[], items:[] }\n//   $('Fetch Products').first().json                    -> [...products]\n//   $('Fetch Existing Pins').first().json               -> [...pins]   (may be empty / 404)\n//   $('Fetch Yesterday\\'s Report').first().json         -> previous report (may be empty)\n//   $('Load Config').first().json                       -> config bundle\n\nfunction asArray(payload) {\n  if (Array.isArray(payload)) return payload;\n  if (payload && Array.isArray(payload.body)) return payload.body;\n  if (payload && Array.isArray(payload.data)) return payload.data;\n  return [];\n}\n\nfunction pickFirecrawlJson(payload) {\n  // Firecrawl /v2/scrape returns { success, data: { json: {...}, markdown, ... } }.\n  // Be tolerant of every shape this might arrive in.\n  if (!payload) return null;\n  if (payload.data && payload.data.json) return payload.data.json;\n  if (payload.json) return payload.json;\n  if (payload.body && payload.body.data && payload.body.data.json) return payload.body.data.json;\n  return null;\n}\n\nfunction norm(s) {\n  return String(s || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\nconst cfg = $('Load Config').first().json;\nconst w = cfg.weights;\n\n// --- 1. Trend signals ---\nconst pinterestRaw = pickFirecrawlJson($('Fetch Pinterest Trends').first().json) || {};\nconst amazonRaw    = pickFirecrawlJson($('Fetch Amazon Movers & Shakers').first().json) || {};\n\nconst pinterestKeywords = (pinterestRaw.keywords || []).map(norm).filter(Boolean);\nconst pinterestCategories = (pinterestRaw.categories || []).map(norm).filter(Boolean);\nconst amazonCategories = (amazonRaw.categories || []).map(norm).filter(Boolean);\nconst amazonItems = Array.isArray(amazonRaw.items) ? amazonRaw.items : [];\n\n// --- 2. Catalog + coverage ---\nconst products = asArray($('Fetch Products').first().json);\nconst pins = asArray($('Fetch Existing Pins').first().json);\n\nconst pinCountByProduct = {};\nfor (const pin of pins) {\n  if (pin && pin.productId) {\n    pinCountByProduct[pin.productId] = (pinCountByProduct[pin.productId] || 0) + 1;\n  }\n}\n\n// --- 3. Yesterday for deltas ---\nconst history = $('Fetch Yesterday\\'s Report').first().json || {};\nconst yesterdayBody = history.body || history.data || history;\nconst yesterdayScoreById = {};\nif (yesterdayBody && Array.isArray(yesterdayBody.scored)) {\n  for (const row of yesterdayBody.scored) {\n    if (row && row.id) yesterdayScoreById[row.id] = row;\n  }\n}\n\n// --- 4. Helpers ---\nconst VIRAL_TAGS = new Set(['trending', 'tiktok', 'viral', 'aesthetic']);\nconst fourteenDaysMs = 14 * 24 * 3600 * 1000;\nconst nowMs = Date.now();\n\nfunction pinterestSubScores(p) {\n  const haystack = norm([p.title, p.description, (p.tags || []).join(' '), p.category].join(' '));\n  const tagHits = (p.tags || []).filter(t => pinterestKeywords.includes(norm(t))).length;\n  const titleHits = pinterestKeywords.filter(k => k && haystack.includes(k)).length;\n  const trendingTagMatch = Math.min(1, (tagHits * 0.4) + (titleHits * 0.15));\n\n  const catNorm = norm(p.category || '');\n  const categorySignal = pinterestCategories.some(c => c && (catNorm.includes(c) || c.includes(catNorm))) ? 1 : 0;\n\n  const pinGap = (pinCountByProduct[p.id] || 0) === 0 ? 1 : 0;\n\n  // Pinterest visual sweet spot: $15-$50, image present.\n  let visualBand = 0;\n  if (p.image) visualBand += 0.5;\n  const price = Number(p.price);\n  if (Number.isFinite(price) && price >= 15 && price <= 50) visualBand += 0.5;\n\n  let novelty = 0;\n  if (p.importedAt) {\n    const importedMs = new Date(p.importedAt).getTime();\n    if (Number.isFinite(importedMs) && (nowMs - importedMs) < fourteenDaysMs) novelty = 1;\n  }\n\n  return { trendingTagMatch, categorySignal, pinGap, visualBand, novelty };\n}\n\nfunction affiliateSubScores(p) {\n  const catNorm = norm(p.category || '');\n  const titleNorm = norm(p.title || '');\n  const amazonCategoryHeat = amazonCategories.some(c => c && (catNorm.includes(c) || c.includes(catNorm))) ||\n    amazonItems.some(it => norm(it && it.title).split(' ').some(w => w.length > 4 && titleNorm.includes(w)))\n      ? 1 : 0;\n\n  const rv = Number(p.rating && p.rating.value) || 0;\n  const rc = Number(p.rating && p.rating.count) || 0;\n  // Normalise so a 4.5/200 product scores ~1, a 4.5/50 product scores ~0.4.\n  const ratingSignal = Math.min(1, (rv / 5) * Math.min(1, rc / 250));\n\n  const price = Number(p.price);\n  let priceBand = 0;\n  if (Number.isFinite(price)) {\n    if (price <= 25) priceBand = 1;\n    else if (price <= 50) priceBand = 0.7;\n    else if (price <= 100) priceBand = 0.45;\n    else priceBand = 0.2;\n  }\n  if ((p.tags || []).includes('under-25') && priceBand >= 0.7) priceBand = 1;\n\n  const tagBoost = (p.tags || []).reduce((acc, t) => acc + (VIRAL_TAGS.has(norm(t)) ? 0.5 : 0), 0);\n\n  const asinPresence = p.asin ? 1 : 0;\n\n  return {\n    amazonCategoryHeat,\n    ratingSignal,\n    priceBand,\n    tagBoost: Math.min(1, tagBoost),\n    asinPresence\n  };\n}\n\nconst scored = [];\nfor (const p of products) {\n  if (!p || !p.id) continue;\n\n  const pin = pinterestSubScores(p);\n  const aff = affiliateSubScores(p);\n\n  const pinterestScore = Math.round(\n    pin.trendingTagMatch * w.pinterest.trendingTagMatch +\n    pin.categorySignal   * w.pinterest.categorySignal +\n    pin.pinGap           * w.pinterest.pinGap +\n    pin.visualBand       * w.pinterest.visualBand +\n    pin.novelty          * w.pinterest.novelty\n  );\n\n  const affiliateScore = Math.round(\n    aff.amazonCategoryHeat * w.affiliate.amazonCategoryHeat +\n    aff.ratingSignal       * w.affiliate.ratingSignal +\n    aff.priceBand          * w.affiliate.priceBand +\n    aff.tagBoost           * w.affiliate.tagBoost +\n    aff.asinPresence       * w.affiliate.asinPresence\n  );\n\n  const compositeScore = Math.max(pinterestScore, affiliateScore);\n\n  // Day-over-day delta (positive = product is climbing).\n  const yest = yesterdayScoreById[p.id];\n  const delta = yest ? {\n    pinterest: pinterestScore - (yest.pinterestScore || 0),\n    affiliate: affiliateScore - (yest.affiliateScore || 0)\n  } : null;\n\n  scored.push({\n    id: p.id,\n    title: p.title,\n    brand: p.brand || null,\n    category: p.category || null,\n    price: p.price ?? null,\n    image: p.image || null,\n    affiliateUrl: p.affiliateUrl || null,\n    asin: p.asin || null,\n    tags: Array.isArray(p.tags) ? p.tags : [],\n    pinCount: pinCountByProduct[p.id] || 0,\n    pinterestScore,\n    affiliateScore,\n    compositeScore,\n    pinterestBreakdown: pin,\n    affiliateBreakdown: aff,\n    delta\n  });\n}\n\nscored.sort((a, b) => b.compositeScore - a.compositeScore);\n\nconst topPinterest = [...scored].sort((a, b) => b.pinterestScore - a.pinterestScore).slice(0, cfg.topN);\nconst topAffiliate = [...scored].sort((a, b) => b.affiliateScore - a.affiliateScore).slice(0, cfg.topN);\nconst doubleWinners = scored.filter(p => p.pinterestScore >= 70 && p.affiliateScore >= 70).slice(0, 5);\n\nreturn [{\n  json: {\n    config: cfg,\n    trends: {\n      pinterest: { keywords: pinterestKeywords, categories: pinterestCategories },\n      amazon: { categories: amazonCategories, items: amazonItems.slice(0, 25) }\n    },\n    catalogStats: {\n      productCount: products.length,\n      pinCount: pins.length,\n      productsWithoutPins: products.filter(p => p && p.id && !(pinCountByProduct[p.id])).length\n    },\n    scored,\n    topPinterest,\n    topAffiliate,\n    doubleWinners,\n    yesterdaySeen: Object.keys(yesterdayScoreById).length\n  }\n}];"
+      },
+      "id": "n08-score",
+      "name": "Score & Rank",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD BRIEF PROMPT\n// ==================\n// One Claude call. We pass the deterministic scoring already done so Claude\n// only has to write *human-readable reasoning*, not invent numbers. Bounded\n// to top 20 products + 25 trend keywords -> well under 4k tokens.\n\nconst item = $input.first().json;\nconst { trends, topPinterest, topAffiliate, doubleWinners, catalogStats, config } = item;\n\nfunction compactProduct(p) {\n  return {\n    id: p.id,\n    title: p.title,\n    category: p.category,\n    price: p.price,\n    pinCount: p.pinCount,\n    pinterestScore: p.pinterestScore,\n    affiliateScore: p.affiliateScore,\n    delta: p.delta,\n    tags: p.tags\n  };\n}\n\nconst userPrompt = [\n  'You are a growth analyst running a daily Opportunity Intelligence System for a summer-finds affiliate site.',\n  '',\n  'Today is ' + config.today + '. We want to find product opportunities BEFORE competitors do.',\n  '',\n  'You will receive: today\\'s trending signals, top-scored products, and yesterday\\'s deltas.',\n  'Return STRICT JSON only (no prose, no markdown fences) with this exact shape:',\n  '',\n  '{',\n  '  \"executiveSummary\": \"<3-4 sentence brief: what is hot today, what to act on first>\",',\n  '  \"trendNarrative\": \"<1-2 sentence summary of today\\'s Pinterest + Amazon signal>\",',\n  '  \"pinterestPlay\": [',\n  '    { \"id\": \"<product id>\", \"reason\": \"<1 sentence: why this is a Pinterest opportunity TODAY>\", \"action\": \"<short action: pin formula, content angle>\" }',\n  '  ],',\n  '  \"affiliatePlay\": [',\n  '    { \"id\": \"<product id>\", \"reason\": \"<1 sentence: why this is converting>\", \"action\": \"<short action: bundle, comparison post, restock alert>\" }',\n  '  ],',\n  '  \"watchList\": [\"<id1>\",\"<id2>\"],',\n  '  \"missingCoverage\": \"<one sentence: what trending keyword or category we don\\'t have a product for yet>\"',\n  '}',\n  '',\n  'Rules:',\n  '  - pinterestPlay must include ONE entry per product in topPinterest (in order).',\n  '  - affiliatePlay must include ONE entry per product in topAffiliate (in order).',\n  '  - Keep every \"reason\" and \"action\" under 25 words. No emoji. No hashtags.',\n  '  - \"missingCoverage\" should name a Pinterest or Amazon trend our catalog does NOT cover.',\n  '',\n  'Catalog stats:',\n  JSON.stringify(catalogStats),\n  '',\n  'Pinterest trending keywords (sample):',\n  JSON.stringify((trends.pinterest.keywords || []).slice(0, 25)),\n  '',\n  'Pinterest trending categories:',\n  JSON.stringify((trends.pinterest.categories || []).slice(0, 15)),\n  '',\n  'Amazon Movers & Shakers categories:',\n  JSON.stringify((trends.amazon.categories || []).slice(0, 15)),\n  '',\n  'Amazon Movers & Shakers items (sample):',\n  JSON.stringify((trends.amazon.items || []).slice(0, 10)),\n  '',\n  'topPinterest (top ' + topPinterest.length + '):',\n  JSON.stringify(topPinterest.map(compactProduct)),\n  '',\n  'topAffiliate (top ' + topAffiliate.length + '):',\n  JSON.stringify(topAffiliate.map(compactProduct)),\n  '',\n  'doubleWinners:',\n  JSON.stringify(doubleWinners.map(compactProduct)),\n  '',\n  'Return ONLY the JSON object. Do not wrap it in code fences.'\n].join('\\n');\n\nreturn [{\n  json: { ...item, user_prompt: userPrompt }\n}];"
+      },
+      "id": "n09-build-brief-prompt",
+      "name": "Build Brief Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ANTHROPIC_API_KEY}}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.CLAUDE_MODEL || 'claude-opus-4-20250514', max_tokens: 3000, messages: [{ role: 'user', content: $json.user_prompt }] }) }}",
+        "options": {
+          "timeout": 90000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n10-claude",
+      "name": "Call Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        480
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// PARSE BRIEF\n// ===========\n// Tolerant to: HTTP errors flowing through, markdown fences, prose around JSON.\n// On any failure we degrade gracefully — the deterministic scoring is still\n// the core of the report; the AI brief is the icing.\n\nconst item = $input.first().json;\nconst upstream = $('Build Brief Prompt').first().json;\n\nfunction emptyBrief() {\n  return {\n    executiveSummary: '(AI brief unavailable — deterministic scores below.)',\n    trendNarrative: '',\n    pinterestPlay: [],\n    affiliatePlay: [],\n    watchList: [],\n    missingCoverage: ''\n  };\n}\n\nconst looksLikeError = item && (item.error || (item.statusCode && item.statusCode >= 400));\nif (looksLikeError) {\n  return [{ json: { ...upstream, brief: emptyBrief(), brief_error: 'claude_api_error' } }];\n}\n\nlet rawText = '';\nif (Array.isArray(item.content) && item.content[0] && typeof item.content[0].text === 'string') {\n  rawText = item.content[0].text;\n} else if (typeof item.text === 'string') {\n  rawText = item.text;\n} else {\n  rawText = JSON.stringify(item);\n}\n\nlet cleaned = rawText.trim()\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nconst firstBrace = cleaned.indexOf('{');\nconst lastBrace = cleaned.lastIndexOf('}');\nif (firstBrace !== -1 && lastBrace > firstBrace) cleaned = cleaned.slice(firstBrace, lastBrace + 1);\n\nlet parsed;\ntry { parsed = JSON.parse(cleaned); }\ncatch (e) {\n  return [{ json: { ...upstream, brief: emptyBrief(), brief_error: 'invalid_json' } }];\n}\n\nconst safeBrief = {\n  executiveSummary: parsed.executiveSummary || '',\n  trendNarrative: parsed.trendNarrative || '',\n  pinterestPlay: Array.isArray(parsed.pinterestPlay) ? parsed.pinterestPlay : [],\n  affiliatePlay: Array.isArray(parsed.affiliatePlay) ? parsed.affiliatePlay : [],\n  watchList: Array.isArray(parsed.watchList) ? parsed.watchList : [],\n  missingCoverage: parsed.missingCoverage || ''\n};\n\nreturn [{ json: { ...upstream, brief: safeBrief, brief_error: null } }];"
+      },
+      "id": "n11-parse-brief",
+      "name": "Parse Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD DAILY REPORT\n// ==================\n// Merges deterministic scoring + the AI brief into the report payload that\n// will be POSTed to the site. We also build a markdown digest so the\n// downstream consumer (email, Slack, blog post) can render it cheaply.\n\nconst item = $input.first().json;\nconst { config, trends, scored, topPinterest, topAffiliate, doubleWinners, brief, catalogStats, brief_error } = item;\n\nfunction indexBy(arr, key) {\n  const m = {};\n  for (const x of arr || []) if (x && x[key]) m[x[key]] = x;\n  return m;\n}\n\nconst pinReasonsById = indexBy(brief.pinterestPlay, 'id');\nconst affReasonsById = indexBy(brief.affiliatePlay, 'id');\n\nfunction mergeReason(list, reasons) {\n  return list.map(p => ({\n    ...p,\n    aiReason: reasons[p.id] ? reasons[p.id].reason : '',\n    aiAction: reasons[p.id] ? reasons[p.id].action : ''\n  }));\n}\n\nconst topPinterestEnriched = mergeReason(topPinterest, pinReasonsById);\nconst topAffiliateEnriched = mergeReason(topAffiliate, affReasonsById);\n\n// --- Markdown digest ---\nfunction moneyOrNa(p) { return p.price != null ? '$' + p.price : 'n/a'; }\n\nconst lines = [];\nlines.push('# Opportunity Intelligence — ' + config.today);\nlines.push('');\nlines.push('> ' + (brief.executiveSummary || '(no AI summary today)'));\nlines.push('');\nlines.push('## Today at a glance');\nlines.push('- Catalog: ' + catalogStats.productCount + ' products, ' + catalogStats.pinCount + ' pins, ' + catalogStats.productsWithoutPins + ' products without pins');\nlines.push('- Trending Pinterest keywords: ' + (trends.pinterest.keywords.slice(0, 8).join(', ') || '—'));\nlines.push('- Hot Amazon categories: ' + (trends.amazon.categories.slice(0, 8).join(', ') || '—'));\nif (brief.missingCoverage) lines.push('- Coverage gap: ' + brief.missingCoverage);\nlines.push('');\nlines.push('## Top Pinterest opportunities');\nlines.push('');\ntopPinterestEnriched.forEach((p, i) => {\n  lines.push((i + 1) + '. **' + p.title + '** — score ' + p.pinterestScore + (p.delta && p.delta.pinterest ? ' (' + (p.delta.pinterest >= 0 ? '+' : '') + p.delta.pinterest + ' vs yesterday)' : ''));\n  lines.push('   - ' + moneyOrNa(p) + ' · ' + (p.category || '') + ' · pins: ' + p.pinCount);\n  if (p.aiReason) lines.push('   - Why: ' + p.aiReason);\n  if (p.aiAction) lines.push('   - Do: ' + p.aiAction);\n});\nlines.push('');\nlines.push('## Top affiliate opportunities');\nlines.push('');\ntopAffiliateEnriched.forEach((p, i) => {\n  lines.push((i + 1) + '. **' + p.title + '** — score ' + p.affiliateScore + (p.delta && p.delta.affiliate ? ' (' + (p.delta.affiliate >= 0 ? '+' : '') + p.delta.affiliate + ' vs yesterday)' : ''));\n  lines.push('   - ' + moneyOrNa(p) + ' · ' + (p.category || '') + ' · rating ' + JSON.stringify(p.affiliateBreakdown.ratingSignal));\n  if (p.aiReason) lines.push('   - Why: ' + p.aiReason);\n  if (p.aiAction) lines.push('   - Do: ' + p.aiAction);\n});\nlines.push('');\nif (doubleWinners.length) {\n  lines.push('## Double winners (Pinterest >= 70 AND Affiliate >= 70)');\n  lines.push('');\n  doubleWinners.forEach(p => {\n    lines.push('- **' + p.title + '** — Pinterest ' + p.pinterestScore + ' · Affiliate ' + p.affiliateScore);\n  });\n}\n\nconst markdown = lines.join('\\n');\n\n// --- Final report ---\nconst report = {\n  date: config.today,\n  generatedAt: new Date().toISOString(),\n  source: 'wf-06-opportunity-intelligence',\n  briefError: brief_error || null,\n  executiveSummary: brief.executiveSummary,\n  trendNarrative: brief.trendNarrative,\n  trends,\n  catalogStats,\n  topPinterest: topPinterestEnriched,\n  topAffiliate: topAffiliateEnriched,\n  doubleWinners,\n  watchList: brief.watchList,\n  missingCoverage: brief.missingCoverage,\n  // Full scored list — kept compact for next-day delta lookups.\n  scored: scored.map(s => ({\n    id: s.id,\n    pinterestScore: s.pinterestScore,\n    affiliateScore: s.affiliateScore,\n    compositeScore: s.compositeScore\n  })),\n  markdown\n};\n\nreturn [{ json: { report } }];"
+      },
+      "id": "n12-build-report",
+      "name": "Build Daily Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.OPPORTUNITY_INGEST_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPPORTUNITY_INGEST_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.report) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n13-insert-report",
+      "name": "Insert Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2040,
+        480
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// AGGREGATE RESULTS\n// =================\n\nconst upstream = $('Build Daily Report').first().json.report;\nconst ingest = $input.first().json;\n\nconst ingestStatus = ingest && ingest.statusCode ? ingest.statusCode : 'ok';\nconst ingestError = ingest && ingest.error ? String(ingest.error) : null;\n\nreturn [{\n  json: {\n    summary: {\n      date: upstream.date,\n      productsScored: upstream.scored.length,\n      topPinterest: upstream.topPinterest.length,\n      topAffiliate: upstream.topAffiliate.length,\n      doubleWinners: upstream.doubleWinners.length,\n      pinterestKeywords: upstream.trends.pinterest.keywords.length,\n      amazonCategories: upstream.trends.amazon.categories.length,\n      ingestStatus,\n      ingestError,\n      briefError: upstream.briefError\n    },\n    report: upstream\n  }\n}];"
+      },
+      "id": "n14-aggregate",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2260,
+        480
+      ]
+    }
+  ],
+  "connections": {
+    "Daily 06:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Load Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Pinterest Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Pinterest Trends": {
+      "main": [
+        [
+          {
+            "node": "Fetch Amazon Movers & Shakers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Amazon Movers & Shakers": {
+      "main": [
+        [
+          {
+            "node": "Fetch Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Products": {
+      "main": [
+        [
+          {
+            "node": "Fetch Existing Pins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Existing Pins": {
+      "main": [
+        [
+          {
+            "node": "Fetch Yesterday's Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Yesterday's Report": {
+      "main": [
+        [
+          {
+            "node": "Score & Rank",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score & Rank": {
+      "main": [
+        [
+          {
+            "node": "Build Brief Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Brief Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Claude API": {
+      "main": [
+        [
+          {
+            "node": "Parse Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Brief": {
+      "main": [
+        [
+          {
+            "node": "Build Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Daily Report": {
+      "main": [
+        [
+          {
+            "node": "Insert Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Report": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

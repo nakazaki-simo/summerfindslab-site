@@ -3,7 +3,8 @@ import {
     getAllPosts,
     getCategories,
     getAllGuides,
-    getAllProducts
+    getAllProducts,
+    getCollectionsByType
 } from "@/lib/products";
 
 export default function sitemap() {
@@ -53,11 +54,34 @@ export default function sitemap() {
         images: [p.image]
     }));
 
+    // Programmatic collection pages: best-of lists, persona pages, price tiers.
+    const bestEntries = getCollectionsByType("best").map((c) => ({
+        url: `${base}/best/${c.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.8
+    }));
+    const personaEntries = getCollectionsByType("for").map((c) => ({
+        url: `${base}/for/${c.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.7
+    }));
+    const underEntries = getCollectionsByType("under").map((c) => ({
+        url: `${base}/under/${c.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.7
+    }));
+
     return [
         ...staticEntries,
         ...categoryEntries,
         ...guideEntries,
         ...postEntries,
-        ...productEntries
+        ...productEntries,
+        ...bestEntries,
+        ...personaEntries,
+        ...underEntries
     ];
 }
