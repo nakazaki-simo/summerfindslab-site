@@ -1,6 +1,6 @@
 # PROJECT BIBLE — Summer Finds Lab Daily
 
-> **Document version:** v1.1
+> **Document version:** v1.2
 > **Last updated:** 2026-05-30
 > **Maintainer:** nakazaki-simo
 > **Repo:** `nakazaki-simo/summerfindslab-site`
@@ -8,6 +8,11 @@
 > ⚠️ This file is the single source of truth for *intent, state, and conventions*.
 > If the code and this file disagree, trust the code, then **update this file**.
 > The code is the territory; this document is the map.
+>
+> 📚 **Companion doc:** `docs/AGENT-SYSTEM.md` — the full multi-agent "company-in-a-box"
+> blueprint (departments, agents, schemas, memory, observability, WhatsApp control,
+> self-hosting + local compute). The Bible covers the *site/product*; AGENT-SYSTEM covers
+> the *autonomous workforce* that operates it.
 
 ---
 
@@ -92,6 +97,9 @@ You are the **Lead Full-Stack + Automation Engineer for Summer Finds Lab Daily**
   - **v1.1:** Pinterest publishing live (WF-04) once API access is approved.
   - **v2 (later):** analytics feedback loop (WF-05), DB-backed ingest if/when JSON
     becomes the bottleneck, possible sister brand for other seasons on a separate subdomain.
+  - **v3 (agent org):** the multi-agent company in `docs/AGENT-SYSTEM.md` — hierarchical
+    manager/worker agents per department, shared vector memory, Langfuse observability,
+    WhatsApp command center, n8n self-hosted on the operator's PC + local LLMs (Ollama).
 - **Active milestone:** *Pre-launch GEO upgrade + automation wiring* (two parallel tracks).
 
 ---
@@ -114,6 +122,11 @@ You are the **Lead Full-Stack + Automation Engineer for Summer Finds Lab Daily**
 | Distribution | Pinterest API v5 | — | `/v5/pins`, `/v5/boards` (WF-04 family) — **approval-gated** |
 | Hosting | Vercel | — | Target deploy platform (not yet deployed) |
 | Runtime | Node.js | ≥ 18.17 | `package.json#engines` |
+
+**Planned additions (see `docs/AGENT-SYSTEM.md`):** Langfuse (agent observability),
+Supabase Vector / PGVector (shared memory), Ollama (free local LLMs on the operator's PC),
+Gemini/Groq free tiers (overflow), WhatsApp Cloud API (control center), Cloudflare Tunnel
+(free public URL for self-hosted n8n), optional CrewAI (complex department crews).
 
 **Locked decisions (don't change without an ADR in §7):** file-based JSON data layer;
 no TS rewrite of existing `.js`; SSR/SSG only; n8n as the only orchestrator;
@@ -305,6 +318,37 @@ All data is flat JSON in `data/`. The site reads it at build/serve time.
   to CSV for manual Bulk Create.
 - **Consequences:** + account safety. − publishing is not yet automated.
 
+### ADR-006: Multi-agent org via hierarchical manager–worker on n8n
+- **Status:** Accepted (blueprint) — see `docs/AGENT-SYSTEM.md`
+- **Context:** The operator wants an autonomous "company-in-a-box" — specialized agent
+  teams (intel/OSINT, product, content, design, distribution, growth, analytics, ops).
+- **Decision:** Use the manager–worker pattern with **n8n as the backbone** (AI Agent node
+  + sub-workflows). Add CrewAI only for genuinely complex department crews (≤5 agents).
+  Shared learning via a **vector store** (Supabase/PGVector); tracing via **Langfuse**.
+  Human approval gates on publish/spend. Determinism (scoring/routing) in code, LLMs for language.
+- **Consequences:** + portable, observable, controllable. − more moving parts; needs budget
+  governance + strict least-privilege. CrewAI hierarchical mode has known pitfalls beyond 5 agents.
+
+### ADR-007: Local-first model routing + self-hosted n8n on the operator's PC
+- **Status:** Accepted (planned)
+- **Context:** Keep cost near zero and exploit the operator's PC; later drop n8n Cloud fee.
+- **Decision:** Route high-volume/low-stakes tasks to **local LLMs (Ollama)** on the PC, then
+  free cloud tiers (Gemini Flash-Lite / Groq), then **Claude** for quality. Migrate n8n from
+  Cloud to **self-hosted Docker on the PC**, exposed via **Cloudflare Tunnel** (free public
+  HTTPS for webhooks). Automate backups before cutover.
+- **Consequences:** + ~$0 inference, no n8n fee, full ownership. − operator owns reliability
+  (backups, uptime); must keep PC on for 24/7 schedules; strict workspace sandboxing (§17 of
+  AGENT-SYSTEM) so agents never get unrestricted OS access.
+
+### ADR-008: WhatsApp as the human control plane
+- **Status:** Accepted (planned)
+- **Context:** Operate the whole system from a phone.
+- **Decision:** Use the official **WhatsApp Business Cloud API** (not unofficial web
+  automation) via n8n; owner-number allowlist + shared secret; commands = status/report/run/
+  approve/reject/pause/budget. Destructive/public actions require explicit `approve`.
+- **Consequences:** + mobile control + approval gates in one channel. − Meta API setup + a
+  public webhook (Cloudflare Tunnel) required.
+
 ---
 
 ## SECTION 8 — CURRENT STATE SNAPSHOT  [ANCHOR:state]
@@ -378,9 +422,16 @@ All data is flat JSON in `data/`. The site reads it at build/serve time.
 | T-10 | Get Pinterest API access; run WF-04c (boards) then WF-04 (publish, 5/run) | P2 | API approval | First pins in `pinterest-published.json` |
 | T-11 | Execute the PPPS spec (9 deliverables + checks) | P2 | — | `npm run check:ppps` → "OK"; tasks.md checked off |
 | T-12 | WF-03 Canva Materializer + WF-05 analytics loop | P3 | T-08, T-10 | Closed discovery→publish→analytics loop |
+| T-13 | Replace Canva with Satori (`next/og`) pin renderer `/api/pins/render` | P1 | — | 4 formula templates render 1000×1500; thumbnail-zone + 4.5:1 + 236px pass |
+| T-14 | Stand up shared memory (Supabase/PGVector) + Langfuse tracing | P2 | T-08 | Agents read/write learnings; every run traced |
+| T-15 | WhatsApp command center (status/report/run/approve/pause) | P2 | T-08 | Owner-only; commands route to dept webhooks; approve-gated |
+| T-16 | Migrate n8n to self-hosted Docker on PC + Cloudflare Tunnel + Ollama | P2 | T-08 | n8n runs locally; public webhook URL; local LLM serves volume tasks |
+| T-17 | Build department crews per `docs/AGENT-SYSTEM.md` (intel→analytics) | P3 | T-13..T-16 | Each dept has manager+workers, emits the §6 schemas |
 
 **Definition of Done (every task):** SSR/SSG preserved · JSON-LD intact · no secrets in git ·
 on a branch with a PR · §8 + §11 updated.
+**Agent-layer tasks (T-13..T-17):** also follow the compliance + least-privilege rules in
+`docs/AGENT-SYSTEM.md` §14/§17.
 
 ---
 
