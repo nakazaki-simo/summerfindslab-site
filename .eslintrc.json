@@ -1,3 +1,15 @@
 {
-    "extends": "next/core-web-vitals"
+    "extends": "next/core-web-vitals",
+    "overrides": [
+        {
+            "files": [
+                "lib/pin-pipeline/renderers/**/*.js",
+                "app/api/pins/render/route.js"
+            ],
+            "rules": {
+                "@next/next/no-img-element": "off",
+                "jsx-a11y/alt-text": "off"
+            }
+        }
+    ]
 }
