@@ -1,0 +1,344 @@
+{
+  "name": "Affiliate Product Processing Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "n01-manual-trigger",
+      "name": "Start - Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// LOAD PRODUCTS\n// =============\n// Default returns 3 sample products so the workflow runs out of the box.\n// To use real data, replace this code with the output of an upstream node:\n//   const items = $('Read Google Sheet').all();\n//   const items = $('Postgres - Query').all();\n//   const items = $('Read CSV').all();\n// (Just make sure the upstream node is connected before this one and that\n//  each item has the same fields shown below.)\n\nconst sampleProducts = [\n  {\n    sku: 'SUM-001',\n    title: 'Linen Beach Cover-Up Dress',\n    brand: 'CoastalCo',\n    price: 39.99,\n    currency: 'USD',\n    affiliate_url: 'https://example.com/aff/sum-001',\n    image_url: 'https://example.com/img/sum-001.jpg',\n    raw_description: 'Breezy linen cover-up perfect for beach days. Adjustable straps, side pockets, mid-thigh length.'\n  },\n  {\n    sku: 'SUM-002',\n    title: 'Mini Portable Blender',\n    brand: 'BlendGo',\n    price: 24.5,\n    currency: 'USD',\n    affiliate_url: 'https://example.com/aff/sum-002',\n    image_url: 'https://example.com/img/sum-002.jpg',\n    raw_description: 'USB-rechargeable mini blender for smoothies on the go. 6 blades, 350ml.'\n  },\n  {\n    sku: 'SUM-003',\n    title: 'UV-Protective Beach Tote',\n    brand: 'SunShield',\n    price: 18,\n    currency: 'USD',\n    affiliate_url: 'https://example.com/aff/sum-003',\n    image_url: 'https://example.com/img/sum-003.jpg',\n    raw_description: 'Waterproof beach tote with insulated cooler pocket and UV-blocking fabric.'\n  }\n];\n\nreturn sampleProducts.map(p => ({ json: p }));"
+      },
+      "id": "n02-load-products",
+      "name": "Load Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// VALIDATE & PREPARE PRODUCTS\n// ===========================\n// Drops invalid rows, normalises fields, and resets the cross-iteration\n// accumulator that Aggregate Results will read at the end.\n\nconst REQUIRED_FIELDS = ['sku', 'title', 'affiliate_url'];\n\nconst items = $input.all();\nconst valid = [];\nconst skipped = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const p = items[i].json || {};\n  const missing = REQUIRED_FIELDS.filter(f => !p[f] || String(p[f]).trim() === '');\n\n  if (missing.length > 0) {\n    skipped.push({ index: i, sku: p.sku || null, missing });\n    continue;\n  }\n\n  valid.push({\n    json: {\n      sku: String(p.sku).trim(),\n      title: String(p.title).trim(),\n      brand: p.brand ? String(p.brand).trim() : null,\n      price: p.price != null && p.price !== '' ? Number(p.price) : null,\n      currency: p.currency ? String(p.currency).trim().toUpperCase() : 'USD',\n      affiliate_url: String(p.affiliate_url).trim(),\n      image_url: p.image_url ? String(p.image_url).trim() : null,\n      asin: p.asin ? String(p.asin).trim() : null,\n      rating: p.rating && typeof p.rating === 'object'\n        ? { value: Number(p.rating.value) || null, count: Number(p.rating.count) || null }\n        : null,\n      raw_description: p.raw_description ? String(p.raw_description).trim() : ''\n    },\n    pairedItem: { item: i }\n  });\n}\n\nif (valid.length === 0) {\n  throw new Error('No valid products. Skipped ' + skipped.length + ': ' + JSON.stringify(skipped));\n}\n\n// Reset cross-iteration accumulator before the loop starts.\nconst staticData = $getWorkflowStaticData('global');\nstaticData.processed = [];\nstaticData.failed = [];\nstaticData.skipped = skipped;\nstaticData.started_at = new Date().toISOString();\n\nreturn valid;"
+      },
+      "id": "n03-validate",
+      "name": "Validate & Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "n04-loop",
+      "name": "Loop Over Products",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        860,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD CLAUDE PROMPT\n// ===================\n// Loop runs with batchSize=1, so this node sees exactly one product per call.\n\nconst product = $input.first().json;\n\nconst userPrompt = [\n  'You are an expert affiliate-marketing copywriter for a summer-finds website.',\n  '',\n  'Given this product, return STRICT JSON only (no prose, no markdown fences) with this exact shape:',\n  '',\n  '{',\n  '  \"category\": \"<one of EXACTLY: summer-gadgets, beach-essentials, tiktok-finds, aesthetic-room, travel, skincare-summer, pet-summer>\",',\n  '  \"tags\": [\"<zero or more of EXACTLY: trending, tiktok, under-25, viral>\"],',\n  '  \"pinterest_titles\": [\"<title under 100 chars>\",\"<title under 100 chars>\",\"<title under 100 chars>\"],',\n  '  \"seo_description\": \"<120-160 char meta description>\",',\n  '  \"viral_hooks\": [\"<hook 1>\",\"<hook 2>\",\"<hook 3>\"],',\n  '  \"long_description\": \"<3-4 sentence product write-up for the site>\"',\n  '}',\n  '',\n  'Rules:',\n  '- \"category\" MUST be one of the 7 slugs above, nothing else.',\n  '- \"tags\" MUST only contain values from the 4 allowed tags above (or be empty).',\n  '- Do NOT invent new category or tag values.',\n  '',\n  'Product:',\n  '- SKU: ' + product.sku,\n  '- Title: ' + product.title,\n  '- Brand: ' + (product.brand || 'unknown'),\n  '- Price: ' + (product.price != null ? product.price + ' ' + product.currency : 'unknown'),\n  '- Raw description: ' + (product.raw_description || '(none)'),\n  '',\n  'Return ONLY the JSON object. Do not wrap it in code fences.'\n].join('\\n');\n\nreturn [{\n  json: {\n    sku: product.sku,\n    product,\n    user_prompt: userPrompt\n  }\n}];"
+      },
+      "id": "n05-build-prompt",
+      "name": "Build Claude Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ANTHROPIC_API_KEY}}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.CLAUDE_MODEL || 'claude-opus-4-20250514', max_tokens: 1500, messages: [{ role: 'user', content: $json.user_prompt }] }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n06-claude-api",
+      "name": "Call Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// PARSE CLAUDE OUTPUT\n// ===================\n// Tolerant to: HTTP errors flowing through (when retries run out and onError\n// is set to continueRegularOutput), markdown fences, prose around the JSON.\n\nconst item = $input.first().json;\nconst product = $('Build Claude Prompt').first().json.product;\nconst sku = product.sku;\nconst staticData = $getWorkflowStaticData('global');\n\n// 1. Detect HTTP-level failure carried through by the HTTP Request node.\nconst looksLikeError = item && (item.error || (item.statusCode && item.statusCode >= 400));\nif (looksLikeError) {\n  const detail = item.error || item.message || ('status ' + item.statusCode);\n  staticData.failed.push({ sku, reason: 'claude_api_error', detail });\n  return [{\n    json: { sku, product, claude_failed: true, claude_error: String(detail) },\n    pairedItem: { item: 0 }\n  }];\n}\n\n// 2. Extract the assistant text from the Anthropic Messages API response.\n//    Shape: { content: [{ type: 'text', text: '...' }], ... }\nlet rawText = '';\nif (Array.isArray(item.content) && item.content[0] && typeof item.content[0].text === 'string') {\n  rawText = item.content[0].text;\n} else if (typeof item.text === 'string') {\n  rawText = item.text;\n} else {\n  rawText = JSON.stringify(item);\n}\n\n// 3. Strip code fences and pull out the first {...} block.\nlet cleaned = rawText.trim()\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nconst firstBrace = cleaned.indexOf('{');\nconst lastBrace = cleaned.lastIndexOf('}');\nif (firstBrace !== -1 && lastBrace > firstBrace) {\n  cleaned = cleaned.slice(firstBrace, lastBrace + 1);\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  staticData.failed.push({\n    sku,\n    reason: 'invalid_json',\n    detail: e.message,\n    raw: rawText.slice(0, 500)\n  });\n  return [{\n    json: {\n      sku,\n      product,\n      claude_failed: true,\n      claude_error: 'invalid_json',\n      raw_response: rawText.slice(0, 500)\n    },\n    pairedItem: { item: 0 }\n  }];\n}\n\n// 4. Defensive defaults so downstream nodes never crash on missing keys.\n//    Coerce category + tags to the canonical enums in lib/types.ts so the\n//    site never receives an out-of-schema value.\nconst CATEGORY_SLUGS = ['summer-gadgets', 'beach-essentials', 'tiktok-finds', 'aesthetic-room', 'travel', 'skincare-summer', 'pet-summer'];\nconst PRODUCT_TAGS = ['trending', 'tiktok', 'under-25', 'viral'];\n\nconst rawCategory = String(parsed.category || '').trim().toLowerCase();\nconst category = CATEGORY_SLUGS.includes(rawCategory) ? rawCategory : 'summer-gadgets';\n\nconst tags = Array.isArray(parsed.tags)\n  ? Array.from(new Set(parsed.tags.map(t => String(t).trim().toLowerCase()).filter(t => PRODUCT_TAGS.includes(t))))\n  : [];\n\nconst safe = {\n  category,\n  tags,\n  pinterest_titles: Array.isArray(parsed.pinterest_titles) ? parsed.pinterest_titles.slice(0, 5) : [],\n  seo_description: parsed.seo_description || '',\n  viral_hooks: Array.isArray(parsed.viral_hooks) ? parsed.viral_hooks.slice(0, 5) : [],\n  long_description: parsed.long_description || ''\n};\n\nreturn [{\n  json: { sku, product, ai: safe, claude_failed: false },\n  pairedItem: { item: 0 }\n}];"
+      },
+      "id": "n07-parse-claude",
+      "name": "Parse Claude Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// STRUCTURE AFFILIATE OUTPUT\n// ==========================\n// Builds three downstream-ready payloads from one product + AI bundle:\n//   - website_payload   -> for site insertion / CMS\n//   - pinterest_payload -> for Pinterest pin generation\n//   - canva_payload     -> for Canva template fill\n\nconst item = $input.first().json;\nconst { sku, product, ai, claude_failed, claude_error } = item;\nconst staticData = $getWorkflowStaticData('global');\n\n// Build a stable, URL-safe id the same way scripts/import-products.mjs does\n// (brand-title), so /finds/[slug] ids stay consistent across both pipelines.\nconst slugify = (s) => String(s || '')\n  .toLowerCase()\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .replace(/[^a-z0-9]+/g, '-')\n  .replace(/^-+|-+$/g, '')\n  .slice(0, 60);\n\nconst brandSlug = slugify(product.brand) || 'find';\nconst slug = (brandSlug + '-' + slugify(product.title)).slice(0, 80);\n\nif (claude_failed) {\n  staticData.processed.push({ sku, status: 'needs_review', error: claude_error });\n  return [{\n    json: {\n      sku,\n      slug,\n      status: 'needs_review',\n      error: claude_error,\n      website_payload: null,\n      pinterest_payload: null,\n      canva_payload: null\n    },\n    pairedItem: { item: 0 }\n  }];\n}\n\nconst website_payload = {\n  id: slug,\n  title: product.title,\n  description: ai.long_description,\n  brand: product.brand || 'See Amazon listing',\n  price: product.price,\n  rating: product.rating && product.rating.value != null\n    ? { value: product.rating.value, count: product.rating.count }\n    : null,\n  category: ai.category,\n  tags: ai.tags,\n  image: product.image_url,\n  imageSource: product.image_url ? 'amazon' : 'curated',\n  asin: product.asin || null,\n  affiliateUrl: product.affiliate_url,\n  source: 'wf-01:affiliate-product-pipeline',\n  importedAt: new Date().toISOString(),\n  editorial: false,\n  seo: { title: product.title, description: ai.seo_description }\n};\n\nconst pinterest_payload = {\n  sku,\n  image_url: product.image_url,\n  affiliate_url: product.affiliate_url,\n  pin_titles: ai.pinterest_titles,\n  pin_description: ai.seo_description,\n  hashtags: ai.tags\n    .map(t => '#' + String(t).replace(/[^a-zA-Z0-9]/g, ''))\n    .filter(h => h.length > 1)\n};\n\nconst canva_payload = {\n  sku,\n  template_kind: 'product_card',\n  fields: {\n    headline: ai.viral_hooks[0] || product.title,\n    subheadline: ai.viral_hooks[1] || ai.category,\n    price: product.price != null ? product.currency + ' ' + product.price : '',\n    image_url: product.image_url,\n    cta_url: product.affiliate_url\n  }\n};\n\nstaticData.processed.push({ sku, status: 'ok', category: ai.category });\n\nreturn [{\n  json: { sku, slug, status: 'ok', website_payload, pinterest_payload, canva_payload },\n  pairedItem: { item: 0 }\n}];"
+      },
+      "id": "n08-structure",
+      "name": "Structure Affiliate Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.WEBSITE_INSERT_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.WEBSITE_API_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sku: $json.sku, slug: $json.slug, status: $json.status, website: $json.website_payload, pinterest: $json.pinterest_payload, canva: $json.canva_payload }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n09-insert-website",
+      "name": "Insert to Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1960,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "maxItems": 1
+      },
+      "id": "n10-limit-done",
+      "name": "Limit (Done Branch)",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// AGGREGATE RESULTS\n// =================\n// Reads the cross-iteration accumulator written inside the loop.\n// (After SplitInBatches finishes, $('Node Inside Loop').all() only returns the\n//  LAST batch, so we read from $getWorkflowStaticData instead.)\n\nconst staticData = $getWorkflowStaticData('global');\nconst processed = staticData.processed || [];\nconst failed = staticData.failed || [];\nconst skipped = staticData.skipped || [];\n\nconst ok = processed.filter(p => p.status === 'ok');\nconst needsReview = processed.filter(p => p.status === 'needs_review');\n\nreturn [{\n  json: {\n    summary: {\n      total_in: processed.length + skipped.length,\n      processed_ok: ok.length,\n      needs_review: needsReview.length,\n      failed: failed.length,\n      skipped: skipped.length\n    },\n    processed,\n    failed,\n    skipped,\n    started_at: staticData.started_at || null,\n    finished_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n11-aggregate",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        560
+      ]
+    }
+  ],
+  "connections": {
+    "Start - Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Products": {
+      "main": [
+        [
+          {
+            "node": "Validate & Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Prepare": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Products": {
+      "main": [
+        [
+          {
+            "node": "Limit (Done Branch)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Claude Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Claude Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Claude API": {
+      "main": [
+        [
+          {
+            "node": "Parse Claude Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Claude Output": {
+      "main": [
+        [
+          {
+            "node": "Structure Affiliate Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structure Affiliate Output": {
+      "main": [
+        [
+          {
+            "node": "Insert to Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert to Website": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit (Done Branch)": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

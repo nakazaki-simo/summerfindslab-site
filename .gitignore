@@ -32,3 +32,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# canva integration secrets / generated artifacts
+/data/canva/tokens.json
+/data/canva/exports.json
+/data/canva/cache/
+
+# transient skill source clones (per .kiro/steering/skills-policy.md)
+/.skill-sources/
+
+# Kiro MCP config (contains API keys — never commit)
+/.kiro/mcp.json
+/.kiro/settings/mcp.json
+
+# Cursor MCP config (contains personal connection URLs — never commit)
+/.cursor/mcp.json

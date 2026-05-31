@@ -1,0 +1,368 @@
+{
+  "name": "Pinterest Boards Helper",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "n01-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pinterest-boards-helper",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "n01b-webhook",
+      "name": "Webhook (POST)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        480
+      ],
+      "webhookId": "pinterest-boards-helper"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.pinterest.com/v5/user_account",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.PINTEREST_ACCESS_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n02-validate-token",
+      "name": "Validate Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// CHECK TOKEN SCOPES\n// ==================\n// /v5/user_account returns 200 only if the token is valid and has at least\n// user_accounts:read. We use it as a cheap liveness probe and report the\n// shape of the response so the user can confirm scopes from the diagnostic.\n\nconst resp = $input.first().json || {};\nconst status = Number(resp.status || resp.statusCode || (resp.code ? 401 : 200));\n\nconst looksLikeError =\n  resp.code != null ||\n  resp.error != null ||\n  (resp.status && Number(resp.status) >= 400);\n\nif (looksLikeError) {\n  // We still continue so the diagnostic report can surface the failure.\n  return [{\n    json: {\n      tokenValid: false,\n      status,\n      error: resp.message || resp.error || resp.code || 'token_check_failed',\n      raw: resp\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    tokenValid: true,\n    status: 200,\n    account: {\n      username: resp.username || null,\n      account_type: resp.account_type || null,\n      profile_image: resp.profile_image || null,\n      website_url: resp.website_url || null,\n      id: resp.id || null\n    },\n    raw: resp\n  }\n}];"
+      },
+      "id": "n03-check-token",
+      "name": "Check Token Scopes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.pinterest.com/v5/boards?page_size=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.PINTEREST_ACCESS_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n04-boards-p1",
+      "name": "Fetch Boards Page 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.pinterest.com/v5/boards?page_size=100{{ $('Fetch Boards Page 1').first().json.bookmark ? '&bookmark=' + encodeURIComponent($('Fetch Boards Page 1').first().json.bookmark) : '' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.PINTEREST_ACCESS_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n05-boards-p2",
+      "name": "Fetch Boards Page 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.pinterest.com/v5/boards?page_size=100{{ $('Fetch Boards Page 2').first().json.bookmark ? '&bookmark=' + encodeURIComponent($('Fetch Boards Page 2').first().json.bookmark) : '' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.PINTEREST_ACCESS_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n06-boards-p3",
+      "name": "Fetch Boards Page 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        560
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// AGGREGATE BOARDS\n// ================\n// Pinterest's /v5/boards is paginated via the `bookmark` query string.\n// We made up to 3 calls (covering up to 300 boards). Concatenate, dedupe by\n// id, sort by pin_count desc, and pick a sensible default board.\n\nfunction asArray(payload) {\n  if (Array.isArray(payload)) return payload;\n  if (payload && Array.isArray(payload.items)) return payload.items;\n  return [];\n}\n\nfunction safeFirst(nodeName) {\n  try {\n    const item = $(nodeName).first();\n    return item ? item.json || {} : {};\n  } catch (_) {\n    return {};\n  }\n}\n\nconst p1 = safeFirst('Fetch Boards Page 1');\nconst p2 = safeFirst('Fetch Boards Page 2');\nconst p3 = safeFirst('Fetch Boards Page 3');\n\nconst all = []\n  .concat(asArray(p1.items))\n  .concat(asArray(p2.items))\n  .concat(asArray(p3.items));\n\nconst byId = new Map();\nfor (const b of all) {\n  if (!b || !b.id) continue;\n  byId.set(b.id, {\n    id: b.id,\n    name: b.name || null,\n    privacy: b.privacy || null,\n    description: b.description || null,\n    pin_count: typeof b.pin_count === 'number' ? b.pin_count : null,\n    follower_count: typeof b.follower_count === 'number' ? b.follower_count : null,\n    cover_pin_image: (b.media && b.media.image_cover_url) || null,\n    created_at: b.created_at || null\n  });\n}\n\nconst boards = Array.from(byId.values()).sort((a, b) => {\n  // Prefer most pin_count, fallback alphabetical.\n  const pa = a.pin_count || 0;\n  const pb = b.pin_count || 0;\n  if (pb !== pa) return pb - pa;\n  return String(a.name || '').localeCompare(String(b.name || ''));\n});\n\n// Suggest a default board: most pinned. If everything is empty, take the first.\nconst defaultBoard = boards[0] || null;\n\nreturn [{\n  json: {\n    fetchedAt: new Date().toISOString(),\n    boardCount: boards.length,\n    boards,\n    suggestedDefaultBoard: defaultBoard ? { id: defaultBoard.id, name: defaultBoard.name } : null,\n    pages: {\n      page1Count: asArray(p1.items).length,\n      page2Count: asArray(p2.items).length,\n      page3Count: asArray(p3.items).length,\n      page1Bookmark: p1.bookmark || null,\n      page2Bookmark: p2.bookmark || null,\n      page3Bookmark: p3.bookmark || null\n    }\n  }\n}];"
+      },
+      "id": "n07-aggregate",
+      "name": "Aggregate Boards",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.BOARDS_CACHE_INGEST_URL || 'https://example.invalid/skip'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.BOARDS_CACHE_INGEST_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fetchedAt: $json.fetchedAt, boards: $json.boards, suggestedDefaultBoard: $json.suggestedDefaultBoard }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n08-persist",
+      "name": "Persist Boards Cache",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD DIAGNOSTIC REPORT\n// =======================\n// Combines token check + boards aggregation + persistence outcome into a\n// single human-friendly report. Use this output as the source of truth for\n// updating PINTEREST_DEFAULT_BOARD_ID and pin boardSuggestion mappings.\n\nconst tokenInfo = $('Check Token Scopes').first().json || {};\nconst boardsInfo = $('Aggregate Boards').first().json || {};\n\nlet persistInfo = null;\ntry {\n  const persistJson = $('Persist Boards Cache').first().json;\n  if (persistJson && Object.keys(persistJson).length) {\n    const looksLikeError =\n      persistJson.code != null ||\n      persistJson.error != null ||\n      (persistJson.status && Number(persistJson.status) >= 400);\n    persistInfo = {\n      attempted: true,\n      ok: !looksLikeError,\n      status: persistJson.status || (looksLikeError ? 500 : 200),\n      detail: looksLikeError ? (persistJson.message || persistJson.error || 'persist_failed') : null\n    };\n  }\n} catch (_) {\n  persistInfo = { attempted: false, ok: null, reason: 'persist_node_skipped_or_unset' };\n}\n\n// Heuristics for the recommendations block.\nconst recommendations = [];\nif (!tokenInfo.tokenValid) {\n  recommendations.push('Pinterest token failed validation. Re-issue PINTEREST_ACCESS_TOKEN with scopes: boards:read pins:read pins:write user_accounts:read.');\n}\nif (!boardsInfo.boardCount) {\n  recommendations.push('No boards found. Create at least one board on Pinterest, then run this workflow again.');\n}\nif (boardsInfo.suggestedDefaultBoard && boardsInfo.suggestedDefaultBoard.id) {\n  recommendations.push('Set PINTEREST_DEFAULT_BOARD_ID=' + boardsInfo.suggestedDefaultBoard.id + ' (' + boardsInfo.suggestedDefaultBoard.name + ') for the Publisher workflow.');\n}\nif (!persistInfo || !persistInfo.attempted) {\n  recommendations.push('BOARDS_CACHE_INGEST_URL is unset. Boards were not persisted; downstream workflows must call Pinterest live each run.');\n} else if (!persistInfo.ok) {\n  recommendations.push('Persist step failed (' + (persistInfo.detail || 'unknown') + '). Boards were resolved but not cached.');\n}\n\nreturn [{\n  json: {\n    ok: tokenInfo.tokenValid === true && boardsInfo.boardCount > 0,\n    generatedAt: new Date().toISOString(),\n    token: {\n      valid: tokenInfo.tokenValid === true,\n      account: tokenInfo.account || null,\n      error: tokenInfo.tokenValid ? null : (tokenInfo.error || 'token_check_failed')\n    },\n    boards: {\n      count: boardsInfo.boardCount || 0,\n      list: boardsInfo.boards || [],\n      suggestedDefault: boardsInfo.suggestedDefaultBoard || null,\n      pages: boardsInfo.pages || null\n    },\n    persist: persistInfo,\n    recommendations,\n    boardNameToId: (boardsInfo.boards || []).reduce((acc, b) => {\n      if (b && b.name && b.id) acc[b.name] = b.id;\n      return acc;\n    }, {})\n  }\n}];"
+      },
+      "id": "n09-report",
+      "name": "Build Diagnostic Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook (POST)": {
+      "main": [
+        [
+          {
+            "node": "Validate Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Token": {
+      "main": [
+        [
+          {
+            "node": "Check Token Scopes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Token Scopes": {
+      "main": [
+        [
+          {
+            "node": "Fetch Boards Page 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Boards Page 1": {
+      "main": [
+        [
+          {
+            "node": "Fetch Boards Page 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Boards Page 2": {
+      "main": [
+        [
+          {
+            "node": "Fetch Boards Page 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Boards Page 3": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Boards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Boards": {
+      "main": [
+        [
+          {
+            "node": "Persist Boards Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Boards Cache": {
+      "main": [
+        [
+          {
+            "node": "Build Diagnostic Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

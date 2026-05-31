@@ -2,7 +2,9 @@ import { siteConfig } from "@/lib/site";
 import {
     getAllPosts,
     getCategories,
-    getAllGuides
+    getAllGuides,
+    getAllProducts,
+    getCollectionsByType
 } from "@/lib/products";
 
 export default function sitemap() {
@@ -44,10 +46,42 @@ export default function sitemap() {
         images: [p.cover]
     }));
 
+    const productEntries = getAllProducts().map((p) => ({
+        url: `${base}/finds/${p.id}`,
+        lastModified: new Date(p.importedAt || Date.now()),
+        changeFrequency: "weekly",
+        priority: 0.55,
+        images: [p.image]
+    }));
+
+    // Programmatic collection pages: best-of lists, persona pages, price tiers.
+    const bestEntries = getCollectionsByType("best").map((c) => ({
+        url: `${base}/best/${c.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.8
+    }));
+    const personaEntries = getCollectionsByType("for").map((c) => ({
+        url: `${base}/for/${c.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.7
+    }));
+    const underEntries = getCollectionsByType("under").map((c) => ({
+        url: `${base}/under/${c.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.7
+    }));
+
     return [
         ...staticEntries,
         ...categoryEntries,
         ...guideEntries,
-        ...postEntries
+        ...postEntries,
+        ...productEntries,
+        ...bestEntries,
+        ...personaEntries,
+        ...underEntries
     ];
 }
