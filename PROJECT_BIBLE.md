@@ -1,6 +1,6 @@
 # PROJECT BIBLE — Summer Finds Lab Daily
 
-> Last updated: 2026-05-30 | Document version: v1.0 | Maintainer: Project owner (solo operator)
+> Last updated: 2026-05-31 | Document version: v1.1 | Maintainer: Project owner (solo operator)
 >
 > Canonical source of truth for any AI or human continuing this project. If this
 > document and the code ever disagree, the **code wins** — then update this file.
@@ -423,13 +423,23 @@ inline comments only where intent is non-obvious. Keep TODOs tagged
 ## 7. ARCHITECTURE DECISION RECORDS (ADRs)
 
 ### ADR-001: Persist `data/*.json` via GitHub Contents API (not a database)
-- **Status:** Accepted (decided; not yet implemented) `[ANCHOR:write-back]`
+- **Status:** Accepted — **implemented** 2026-05-31 (`feat/analytics-memory`, PR #4) `[ANCHOR:write-back]`
 - **Context:** Vercel's runtime filesystem is read-only, so ingest endpoints
-  (`/api/opportunities/ingest`, planned `/api/products/upsert`, `/api/pins/ingest`)
+  (`/api/opportunities/ingest`, `/api/analytics/ingest`, planned
+  `/api/products/upsert`, `/api/pins/ingest`)
   degrade to `persisted:false`. Durable write-back is required for the self-feeding loop.
 - **Decision:** Write back by committing JSON to a branch via the GitHub Contents
   API and opening a PR (merge → Vercel rebuild). The GitHub token may live in the
   site endpoint or in n8n (implementation detail).
+- **Implementation:** `lib/persist/githubCommit.js` commits to branch
+  `auto/data-<date>` and opens/reuses a PR (idempotent: reuses the daily branch,
+  updates files in place by blob SHA, never opens duplicate PRs). `lib/persist/
+  writeData.js` wraps it: try local FS → fall back to GitHub write-back → else
+  `persisted:false`. Wired into `/api/opportunities/ingest` and
+  `/api/analytics/ingest`. Env: `GITHUB_DATA_TOKEN` (Contents:RW + PRs:RW; classic
+  `repo`), `GITHUB_DATA_REPO` (or Vercel `VERCEL_GIT_REPO_OWNER/SLUG`),
+  `GITHUB_DATA_BASE_BRANCH` (default `main`). Still requires the token to be set
+  in Vercel env to be durable in production.
 - **Consequences:** Keeps file-based JSON as single source of truth; free;
   git-tracked history; honors "never push to main, always PR." Adds commit
   latency before data is live; requires a PAT with `repo` scope.
@@ -557,8 +567,10 @@ first real end-to-end run, and the PPPS deliverable docs.
 - **`main` is stale** → live site is pre-upgrade: `/finds/*`, `/best/*` return
   404, sitemap has only 23 URLs, no `/api` routes live. Fix = merge
   `geo-upgrade-finds-pages` → `main`.
-- **Read-only FS write-back** → ingest endpoints return `persisted:false` on
-  Vercel; self-feeding loop cannot persist until ADR-001 is implemented.
+- **Read-only FS write-back** → **resolved (code)** on `feat/analytics-memory`
+  (PR #4): ingest routes commit to `auto/data-<date>` + open a PR via the GitHub
+  Contents API (ADR-001). Durable in production once `GITHUB_DATA_TOKEN` is set
+  in Vercel env and the chain is merged.
 - **WF-01 schema mismatch** → emits `sku`/`image_url` instead of canonical
   `id`/`image`/`affiliateUrl`; must be conformed to `lib/types.ts`.
 - **`tiktok-finds` category has 0 products** → homepage TikTok section + nav link
@@ -569,12 +581,10 @@ first real end-to-end run, and the PPPS deliverable docs.
   gitignored. Rotate all keys + delete the branch after handoff.
 
 **▪ NOT STARTED but planned**
-- GitHub Contents API write-back (ADR-001).
 - Importing + activating the 6 workflows inside n8n Cloud; filling secrets.
 - PPPS deliverable docs (spec is 0/12 tasks).
-- WF-03 Canva Materializer, WF-05 Analytics loop, `/api/products/upsert`,
-  `/api/pins/ingest`, `/api/health`, `/api/pins/queue`.
-- Analytics tool selection + wiring.
+- WF-03 Canva Materializer, `/api/products/upsert`, `/api/pins/ingest`,
+  `/api/health`, `/api/pins/queue`.
 - Real custom domain purchase + Vercel connection.
 
 **Last commands / state seen (2026-05-30):**
@@ -592,7 +602,7 @@ first real end-to-end run, and the PPPS deliverable docs.
 | T-001 | Merge `geo-upgrade-finds-pages` → `main` via PR | P0 | — | PR merged; Vercel deploys; `/finds/*`, `/best/*`, `/api/*` resolve live; sitemap > 23 URLs |
 | T-002 | Rotate ALL leaked keys (Firecrawl, Exa, Context7, 21st-Magic, n8n Cloud JWT) + delete `sync/*` branch | P0 | T-001 (preserve work first) | New keys issued; old keys revoked; sync branch deleted from origin; mcp.json re-gitignored |
 | T-003 | Confirm real Amazon Associates tag in `data/products.json` + record approval status | P1 | — | Every `affiliateUrl` carries the approved tag; README placeholder removed; approval state documented here |
-| T-004 | Implement GitHub Contents API write-back in ingest endpoints (ADR-001) | P1 | T-001 | Ingest commits JSON to `auto/*` branch + opens PR; `persisted:true` off-Vercel path documented |
+| T-004 | ✅ DONE (code, PR #4 `feat/analytics-memory`) — GitHub Contents API write-back in ingest endpoints (ADR-001) | P1 | T-001 | Ingest commits JSON to `auto/data-<date>` branch + opens PR; `lib/persist/{githubCommit,writeData}.js`; wired into opportunities + analytics ingest. **Remaining:** set `GITHUB_DATA_TOKEN`/`GITHUB_DATA_REPO` in Vercel env + merge chain to make it durable in prod |
 | T-005 | Import + activate the 6 n8n workflows in Cloud; fill secrets; first manual dry-run | P1 | T-001, T-004 | Each workflow imports clean; manual run succeeds against a webhook.site sink; secrets in n8n Variables |
 | T-006 | Fix WF-01 schema → conform to `lib/types.ts` (`id`/`image`/`affiliateUrl`/`rating`) | P1 | T-005 | WF-01 output validates against `types.ts`; no `sku`/`image_url` |
 | T-007 | Populate `tiktok-finds` category (≥3 products) | P2 | — | Homepage TikTok section + nav render non-empty |
@@ -649,7 +659,7 @@ under a new name if a project tweak is needed. Sources: `zubair-trabzada/geo-seo
 
 | Bug | Root cause | Fix | Prevention |
 |-----|-----------|-----|------------|
-| Ingest endpoints silently lose data on Vercel | Vercel runtime FS is read-only; `fs.writeFile` throws | Endpoint catches, returns `200 { persisted:false, hint }`; durable fix = GitHub Contents API (ADR-001) | Treat any "write to disk" on Vercel as non-durable; route writes through git/PR |
+| Ingest endpoints silently lose data on Vercel | Vercel runtime FS is read-only; `fs.writeFile` throws | **Fixed (PR #4):** `lib/persist/writeData.js` tries local FS then commits to `auto/data-<date>` via GitHub Contents API (`lib/persist/githubCommit.js`); still returns `200 { persisted:false }` if no token. ADR-001 implemented. | Treat any "write to disk" on Vercel as non-durable; route writes through git/PR; set `GITHUB_DATA_TOKEN` in Vercel env |
 | WF-01 payload doesn't match site schema | WF-01 emits `sku`/`image_url`; canonical schema is `id`/`image`/`affiliateUrl`/`rating:{value,count}` | Conform WF-01 `Structure Affiliate Output` to `lib/types.ts` (direction: WF-01 → types.ts, never reverse) | `lib/types.ts` is the contract; validate workflow output against it |
 | `main` ships a pre-upgrade site | Upgrade work committed to `geo-upgrade-finds-pages`, never merged | Merge branch → `main` (T-001) | Keep `main` current; PR-merge feature branches promptly |
 | Secrets committed to git | `sync/*` branch force-added gitignored mcp.json files for handoff | Rotate keys + delete branch (T-002); files are normally gitignored | Never commit real mcp.json; keep `mcp.example.json`; honor `.gitignore` |
@@ -796,6 +806,20 @@ magic (21st), and **n8n** (remote, n8n Cloud) — n8n only in `.kiro/mcp.json`.
 - [ ] I know secrets are exposed on `sync/*` and rotation is P0.
 - [ ] I will not edit `.kiro/skills/<skill>/` by hand, push to `main` directly,
       install deps, run paid-API batches, or publish real pins without confirming first.
+
+---
+
+## Changelog
+
+- **v1.1 (2026-05-31)** — ADR-001 **implemented**: durable write-back via GitHub
+  Contents API (`lib/persist/githubCommit.js` + `writeData.js`), wired into
+  `/api/opportunities/ingest` and the new `/api/analytics/ingest`. Added the
+  analytics→learning loop (`lib/feedback/score.js` → `data/memory/learnings.jsonl`
+  + `data/training/examples.jsonl`) and a WF-05 analytics-collector sketch
+  (`active:false`). Updated §8 (write-back resolved in code), §9 (T-004 done),
+  §11 (failure-log fix). PR #4 (`feat/analytics-memory`). Durable in prod pending
+  `GITHUB_DATA_TOKEN` in Vercel env + chain merge.
+- **v1.0 (2026-05-30)** — Initial Project Bible.
 
 ---
 
