@@ -59,6 +59,39 @@ General marketing, growth, copy, and SEO skills.
 - `sales-enablement`, `schema`, `seo-audit`, `signup`
 - `site-architecture`, `sms`, `social`, `video`
 
+### From [superpowers](https://github.com/obra/superpowers)
+
+Developer workflow skills — planning, TDD, debugging, code review, and agent orchestration.
+
+- `brainstorming` — turn rough ideas into structured designs/specs
+- `writing-plans` — write implementation plans from a spec
+- `executing-plans` — execute a written plan with review checkpoints
+- `subagent-driven-development` — run independent tasks in the current session
+- `dispatching-parallel-agents` — fan out independent work to subagents
+- `test-driven-development` — enforce tests-first workflow
+- `systematic-debugging` — root-cause analysis instead of guessing
+- `verification-before-completion` — evidence before claiming done
+- `requesting-code-review` / `receiving-code-review` — code review workflows
+- `using-git-worktrees` — isolated worktree-based workspaces
+- `finishing-a-development-branch` — merge/PR/cleanup workflow
+- `writing-skills` — author and verify new skills
+- `using-superpowers` — meta-skill for finding/using skills
+
+### From [superpowers-lab](https://github.com/obra/superpowers-lab)
+
+Experimental/bleeding-edge companion skills to superpowers.
+
+- `finding-duplicate-functions` — audit a codebase for semantic duplication
+- `mcp-cli` — use MCP servers on-demand via the `mcp` CLI
+- `slack-messaging` — send/read Slack messages from the CLI
+- `using-tmux-for-interactive-commands` — drive interactive CLIs via tmux
+- `windows-vm` — manage a headless Windows 11 VM in Docker over SSH
+
+### From [Skill_Seekers](https://github.com/yusufkaraaslan/Skill_Seekers)
+
+- `skill-builder` — auto-generate Claude Skills from docs, repos, PDFs, or videos
+  (requires the Skill Seekers MCP server to be configured to be fully functional)
+
 ## How to use
 
 1. Open Kiro in this repository.
@@ -73,3 +106,6 @@ Skills retain the licenses of their source repositories. See:
 - https://github.com/zubair-trabzada/geo-seo-claude/blob/main/LICENSE
 - https://github.com/coreyhaines31/marketingskills/blob/main/LICENSE
 - https://github.com/czlonkowski/n8n-skills/blob/main/LICENSE
+- https://github.com/obra/superpowers/blob/main/LICENSE
+- https://github.com/obra/superpowers-lab/blob/main/LICENSE
+- https://github.com/yusufkaraaslan/Skill_Seekers/blob/main/LICENSE

@@ -1,6 +1,6 @@
 # PROJECT BIBLE — Summer Finds Lab Daily
 
-> Last updated: 2026-05-31 | Document version: v1.1 | Maintainer: Project owner (solo operator)
+> Last updated: 2026-05-31 | Document version: v1.3 | Maintainer: Project owner (solo operator)
 >
 > Canonical source of truth for any AI or human continuing this project. If this
 > document and the code ever disagree, the **code wins** — then update this file.
@@ -811,6 +811,12 @@ magic (21st), and **n8n** (remote, n8n Cloud) — n8n only in `.kiro/mcp.json`.
 
 ## Changelog
 
+- **v1.2 (2026-05-31)** — Installed 20 dev-workflow skills into `.kiro/skills/`
+  from 3 new sources: obra/superpowers (14), obra/superpowers-lab (5),
+  yusufkaraaslan/Skill_Seekers (1 → `skill-builder`). Updated skills-policy §2
+  source table and `.kiro/skills/README.md` (new sources + LICENSE refs). The two
+  `awesome-claude-skills` repos (BehiSecc, travisvn) were link-lists with no
+  `SKILL.md` and were not installed. Branch `add-skills-superpowers`.
 - **v1.1 (2026-05-31)** — ADR-001 **implemented**: durable write-back via GitHub
   Contents API (`lib/persist/githubCommit.js` + `writeData.js`), wired into
   `/api/opportunities/ingest` and the new `/api/analytics/ingest`. Added the
