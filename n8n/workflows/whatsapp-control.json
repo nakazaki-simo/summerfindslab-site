@@ -1,0 +1,579 @@
+{
+  "name": "WhatsApp Command Center",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-control",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "n01-wa-trigger",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        360
+      ],
+      "webhookId": "whatsapp-control"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// AUTHENTICATE\n// ============\n// Owner-only gate. Reads the WhatsApp Cloud API inbound webhook shape and\n// verifies BOTH:\n//   1. sender number === OWNER_WHATSAPP_NUMBER (digits only), AND\n//   2. the message text begins with the shared secret WHATSAPP_CMD_SECRET.\n// Anything else is rejected (and surfaced so Format Reply can log it) — no\n// command is parsed or routed.\n\nconst ownerNumber = String($env.OWNER_WHATSAPP_NUMBER || '').replace(/[^0-9]/g, '');\nconst secret = String($env.WHATSAPP_CMD_SECRET || '');\n\nfunction onlyDigits(s) { return String(s || '').replace(/[^0-9]/g, ''); }\n\n// WhatsApp Cloud API webhook payload:\n//   entry[0].changes[0].value.messages[0] = { from, text: { body }, type, ... }\nconst body = $json.body || $json;\nlet msg = null;\nlet fromNumber = '';\nlet text = '';\ntry {\n  const value = body.entry[0].changes[0].value;\n  msg = (value.messages || [])[0] || null;\n  if (msg) {\n    fromNumber = onlyDigits(msg.from);\n    text = msg.type === 'text' ? String(msg.text.body || '') : '';\n  }\n} catch (e) {\n  msg = null;\n}\n\n// No user message in this webhook (could be a status/delivery callback) -> ignore.\nif (!msg) {\n  return [{ json: { __ignore: true, reason: 'no_user_message' } }];\n}\n\nif (!ownerNumber || !secret) {\n  return [{ json: { authorized: false, reason: 'control_not_configured', fromNumber } }];\n}\n\nconst numberOk = fromNumber === ownerNumber;\n\n// Secret must be the FIRST whitespace-delimited token. Strip it from the text.\nconst trimmed = text.trim();\nconst firstSpace = trimmed.indexOf(' ');\nconst firstToken = firstSpace === -1 ? trimmed : trimmed.slice(0, firstSpace);\nconst rest = firstSpace === -1 ? '' : trimmed.slice(firstSpace + 1).trim();\nconst secretOk = firstToken === secret;\n\nif (!numberOk || !secretOk) {\n  return [{\n    json: {\n      authorized: false,\n      reason: !numberOk ? 'sender_not_owner' : 'bad_secret',\n      fromNumber,\n      // Never echo the attempted secret back.\n      attemptedFrom: fromNumber\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    authorized: true,\n    fromNumber,\n    commandText: rest,\n    messageId: msg.id || null,\n    receivedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n02-auth",
+      "name": "Authenticate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// PARSE COMMAND (SCHEMA-Command)\n// ==============================\n// SCHEMA-Command = {\n//   verb: 'status'|'report'|'run'|'approve'|'reject'|'pause'|'resume'|'budget',\n//   args: string[],          // positional args after the verb\n//   raw: string,             // the command text (secret already stripped)\n//   target?: string,         // first arg (dept | workflow | id) for convenience\n//   count?: number|null,     // numeric arg for 'run <workflow> [n]'\n//   reason?: string          // trailing free text for 'reject <id> [reason]'\n// }\n// Rejected/ignored auth results pass straight through untouched.\n\nconst inp = $json;\nif (inp.__ignore) return [{ json: inp }];\nif (inp.authorized === false) return [{ json: inp }];\n\nconst VERBS = ['status', 'report', 'run', 'approve', 'reject', 'pause', 'resume', 'budget'];\nconst raw = String(inp.commandText || '').trim();\nconst tokens = raw.length ? raw.split(/\\s+/) : [];\nconst verb = (tokens[0] || '').toLowerCase();\nconst args = tokens.slice(1);\n\nif (!VERBS.includes(verb)) {\n  return [{\n    json: {\n      authorized: true,\n      fromNumber: inp.fromNumber,\n      valid: false,\n      error: 'unknown_verb',\n      verb,\n      help: 'verbs: status | report <dept> | run <workflow> [n] | approve <id> | reject <id> [reason] | pause <dept> | resume <dept> | budget'\n    }\n  }];\n}\n\nconst count = (verb === 'run' && args[1] && /^\\d+$/.test(args[1])) ? Number(args[1]) : null;\nconst reason = (verb === 'reject') ? args.slice(1).join(' ') : '';\n\nreturn [{\n  json: {\n    authorized: true,\n    fromNumber: inp.fromNumber,\n    valid: true,\n    command: {\n      verb,\n      args,\n      raw,\n      target: args[0] || null,\n      count,\n      reason\n    }\n  }\n}];"
+      },
+      "id": "n03-parse",
+      "name": "Parse Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "status",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command ? $json.command.verb : ($json.valid === false ? 'invalid' : 'other') }}",
+                    "rightValue": "status",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "other"
+        }
+      },
+      "id": "n04-route",
+      "name": "Route Command",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        900,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ANALYTICS_LATEST_URL || ($env.SITE_URL + '/api/analytics/latest') }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n05-fetch-analytics",
+      "name": "Fetch Analytics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// HANDLE: status\n// ==============\n// Reads /api/analytics/latest (already fetched by 'Fetch Analytics') and\n// summarises today's pipeline KPIs. Tolerant to the 404 'no_snapshot' first-run.\n\nconst analytics = $('Fetch Analytics').first().json || {};\nconst cmd = $('Parse Command').first().json;\n\nlet snapshot = analytics;\nif (analytics && analytics.body && typeof analytics.body === 'object') snapshot = analytics.body;\n\nconst items = Array.isArray(snapshot.items) ? snapshot.items : [];\nconst totals = items.reduce((acc, it) => {\n  acc.impressions += Number(it.impressions || 0);\n  acc.saves += Number(it.saves || 0);\n  acc.outboundClicks += Number(it.outboundClicks || 0);\n  return acc;\n}, { impressions: 0, saves: 0, outboundClicks: 0 });\n\nconst hasData = items.length > 0 && !snapshot.error;\n\nreturn [{\n  json: {\n    fromNumber: cmd.fromNumber,\n    replyKind: 'status',\n    status: {\n      date: snapshot.date || new Date().toISOString().slice(0, 10),\n      source: snapshot.source || (hasData ? 'analytics' : 'data-unavailable'),\n      items: items.length,\n      impressions: totals.impressions,\n      saves: totals.saves,\n      outboundClicks: totals.outboundClicks,\n      dataUnavailable: !hasData\n    }\n  }\n}];"
+      },
+      "id": "n06-handle-status",
+      "name": "Handle Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// HANDLE: report | run | approve | reject | pause | resume | budget\n// ================================================================\n// Builds the dept-webhook intent + enforces the approve-gate and budget caps.\n// This node does NOT itself post publicly or spend; for gated verbs it returns\n// an approval prompt. A real dept webhook call is wired via 'Call Dept Webhook'\n// only for non-destructive reads (report/status/budget) and for 'approve'.\n\nconst cmd = $('Parse Command').first().json.command;\nconst fromNumber = $('Parse Command').first().json.fromNumber;\nconst budgetCap = Number($env.DAILY_BUDGET_USD || 5);\n\n// Verbs that, when run, post publicly or spend money -> must be approved first.\nconst GATED_RUN_TARGETS = ['pinterest-publisher', 'wf-04', 'affiliate-product-pipeline', 'wf-01', 'pin-generator', 'wf-02'];\n\nfunction approvalId() {\n  return 'apr-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);\n}\n\nconst verb = cmd.verb;\nlet out = { fromNumber, replyKind: verb };\n\nif (verb === 'run') {\n  const target = String(cmd.target || '').toLowerCase();\n  const isGated = GATED_RUN_TARGETS.includes(target);\n  if (!target) {\n    out.error = 'missing_workflow';\n    out.help = 'run <workflow> [n] — e.g. run opportunity-intelligence';\n  } else if (isGated) {\n    // Do NOT execute. Return an approval prompt.\n    out.gated = true;\n    out.approvalId = approvalId();\n    out.action = { type: 'run', target, count: cmd.count };\n    out.message = 'requires approval (posts publicly / spends)';\n  } else {\n    // Non-gated workflow (e.g. analytics/opportunity reads) — allowed to trigger.\n    out.gated = false;\n    out.action = { type: 'run', target, count: cmd.count };\n  }\n} else if (verb === 'approve' || verb === 'reject') {\n  if (!cmd.target) out.error = 'missing_id';\n  else {\n    out.action = { type: verb, id: cmd.target, reason: cmd.reason || null };\n  }\n} else if (verb === 'pause' || verb === 'resume') {\n  if (!cmd.target) out.error = 'missing_dept';\n  else out.action = { type: verb, dept: cmd.target };\n} else if (verb === 'report') {\n  if (!cmd.target) out.error = 'missing_dept';\n  else out.action = { type: 'report', dept: cmd.target };\n} else if (verb === 'budget') {\n  out.action = { type: 'budget' };\n  out.budgetCapUsd = budgetCap;\n}\n\nreturn [{ json: out }];"
+      },
+      "id": "n07-handle-generic",
+      "name": "Handle Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// FORMAT REPLY\n// ============\n// Turns the handler output (or an auth rejection) into the final WhatsApp text\n// and the Graph API recipient. Always emits a single item with { to, text }.\n\nconst ownerNumber = String($env.OWNER_WHATSAPP_NUMBER || '').replace(/[^0-9]/g, '');\nconst j = $json;\n\n// Ignored webhooks (delivery receipts etc.) — short-circuit to a no-send.\nif (j.__ignore) {\n  return [{ json: { skipSend: true, reason: j.reason } }];\n}\n\nlet to = j.fromNumber || ownerNumber;\nlet text = '';\n\nif (j.authorized === false) {\n  // Rejected: reply ONLY to the owner number (never to the attacker), and keep\n  // it generic. Most importantly: the command was not executed.\n  return [{\n    json: {\n      skipSend: false,\n      to: ownerNumber,\n      text: '⛔ Rejected an unauthorized command attempt (' + (j.reason || 'denied') + ').'\n    }\n  }];\n}\n\nif (j.valid === false) {\n  text = '❓ ' + (j.error || 'invalid command') + '\\n' + (j.help || '');\n} else if (j.replyKind === 'status') {\n  const s = j.status;\n  if (s.dataUnavailable) {\n    text = '📊 Status ' + s.date + '\\nNo analytics snapshot yet (data-unavailable).';\n  } else {\n    text = '📊 Status ' + s.date + ' (' + s.source + ')\\n' +\n      '• items: ' + s.items + '\\n' +\n      '• impressions: ' + s.impressions + '\\n' +\n      '• saves: ' + s.saves + '\\n' +\n      '• outbound clicks: ' + s.outboundClicks;\n  }\n} else if (j.replyKind === 'run') {\n  if (j.error) text = '⚠️ run: ' + j.error + (j.help ? '\\n' + j.help : '');\n  else if (j.gated) {\n    text = '🔒 \"' + j.action.target + '\" ' + j.message + '.\\n' +\n      'Reply: approve ' + j.approvalId + '   (or)   reject ' + j.approvalId + ' <reason>';\n  } else {\n    text = '▶️ Triggered \"' + j.action.target + '\"' + (j.action.count ? ' x' + j.action.count : '') + '.';\n  }\n} else if (j.replyKind === 'approve') {\n  text = j.error ? ('⚠️ approve: ' + j.error) : ('✅ Approved ' + j.action.id + ' — executing.');\n} else if (j.replyKind === 'reject') {\n  text = j.error ? ('⚠️ reject: ' + j.error) : ('🗑️ Rejected ' + j.action.id + (j.action.reason ? (' (' + j.action.reason + ')') : '') + '.');\n} else if (j.replyKind === 'pause' || j.replyKind === 'resume') {\n  text = j.error ? ('⚠️ ' + j.replyKind + ': ' + j.error) : ((j.replyKind === 'pause' ? '⏸️ Paused ' : '▶️ Resumed ') + j.action.dept + '.');\n} else if (j.replyKind === 'report') {\n  text = j.error ? ('⚠️ report: ' + j.error) : ('📑 Latest ' + j.action.dept + ' digest requested.');\n} else if (j.replyKind === 'budget') {\n  text = '💰 Daily budget cap: $' + j.budgetCapUsd + '. (Remaining computed by the budget dept webhook.)';\n} else {\n  text = 'OK';\n}\n\nreturn [{ json: { skipSend: false, to, text } }];"
+      },
+      "id": "n08-format",
+      "name": "Format Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.skipSend }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "n09-should-send",
+      "name": "Should Send?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/' + ($env.WHATSAPP_GRAPH_VERSION || 'v22.0') + '/' + $env.WHATSAPP_PHONE_ID + '/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.WHATSAPP_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.to, type: 'text', text: { body: $json.text } }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n10-wa-send",
+      "name": "WhatsApp Send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        360
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "={{ '0 ' + ($env.DIGEST_HOUR_UTC || '7') + ' * * *' }}"
+            }
+          ]
+        }
+      },
+      "id": "n20-digest-cron",
+      "name": "Daily Digest Cron",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ANALYTICS_LATEST_URL || ($env.SITE_URL + '/api/analytics/latest') }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n21-fetch-analytics-digest",
+      "name": "Fetch Analytics (Digest)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        720
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD DAILY DIGEST\n// ==================\n// Outbound push. Summarises KPIs from /api/analytics/latest for the owner.\n\nconst analytics = $('Fetch Analytics (Digest)').first().json || {};\nlet snapshot = analytics.body && typeof analytics.body === 'object' ? analytics.body : analytics;\nconst items = Array.isArray(snapshot.items) ? snapshot.items : [];\nconst totals = items.reduce((a, it) => {\n  a.impressions += Number(it.impressions || 0);\n  a.saves += Number(it.saves || 0);\n  a.outboundClicks += Number(it.outboundClicks || 0);\n  return a;\n}, { impressions: 0, saves: 0, outboundClicks: 0 });\n\nconst ownerNumber = String($env.OWNER_WHATSAPP_NUMBER || '').replace(/[^0-9]/g, '');\nconst date = snapshot.date || new Date().toISOString().slice(0, 10);\nconst hasData = items.length > 0 && !snapshot.error;\n\nconst text = hasData\n  ? ('🌅 Daily digest ' + date + '\\n' +\n     '• outbound clicks: ' + totals.outboundClicks + '\\n' +\n     '• saves: ' + totals.saves + '\\n' +\n     '• impressions: ' + totals.impressions + '\\n' +\n     'Reply \"' + ($env.WHATSAPP_CMD_SECRET ? '<secret> ' : '') + 'status\" for live state.')\n  : ('🌅 Daily digest ' + date + '\\nNo analytics snapshot yet.');\n\nreturn [{ json: { skipSend: false, to: ownerNumber, text } }];"
+      },
+      "id": "n22-build-digest",
+      "name": "Build Daily Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/' + ($env.WHATSAPP_GRAPH_VERSION || 'v22.0') + '/' + $env.WHATSAPP_PHONE_ID + '/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.WHATSAPP_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.to, type: 'text', text: { body: $json.text } }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n23-wa-send-digest",
+      "name": "WhatsApp Send (Digest)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        720
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-watchdog",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "n30-watchdog-trigger",
+      "name": "Watchdog Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        920
+      ],
+      "webhookId": "whatsapp-watchdog"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD WATCHDOG ALERT\n// ====================\n// Triggered by other workflows POSTing { dept, severity, message, traceId }.\n// Emits a WhatsApp alert to the owner with a Langfuse trace link.\n\nconst ownerNumber = String($env.OWNER_WHATSAPP_NUMBER || '').replace(/[^0-9]/g, '');\nconst langfuseBase = String($env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com').replace(/\\/+$/, '');\nconst p = $json.body || $json;\n\nconst dept = p.dept || 'system';\nconst severity = (p.severity || 'P2').toUpperCase();\nconst message = String(p.message || 'unspecified issue').slice(0, 500);\nconst traceId = p.traceId || p.trace_id || null;\nconst traceLink = traceId ? (langfuseBase + '/trace/' + traceId) : null;\n\nconst text = '🚨 ' + severity + ' · ' + dept + '\\n' + message +\n  (traceLink ? ('\\nTrace: ' + traceLink) : '');\n\nreturn [{ json: { skipSend: false, to: ownerNumber, text } }];"
+      },
+      "id": "n31-build-watchdog",
+      "name": "Build Watchdog Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/' + ($env.WHATSAPP_GRAPH_VERSION || 'v22.0') + '/' + $env.WHATSAPP_PHONE_ID + '/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.WHATSAPP_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.to, type: 'text', text: { body: $json.text } }) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n32-wa-send-watchdog",
+      "name": "WhatsApp Send (Watchdog)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        920
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Authenticate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authenticate": {
+      "main": [
+        [
+          {
+            "node": "Parse Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Command": {
+      "main": [
+        [
+          {
+            "node": "Route Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Command": {
+      "main": [
+        [
+          {
+            "node": "Fetch Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Analytics": {
+      "main": [
+        [
+          {
+            "node": "Handle Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Status": {
+      "main": [
+        [
+          {
+            "node": "Format Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Command": {
+      "main": [
+        [
+          {
+            "node": "Format Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reply": {
+      "main": [
+        [
+          {
+            "node": "Should Send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send?": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Digest Cron": {
+      "main": [
+        [
+          {
+            "node": "Fetch Analytics (Digest)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Analytics (Digest)": {
+      "main": [
+        [
+          {
+            "node": "Build Daily Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Daily Digest": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Send (Digest)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Watchdog Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Watchdog Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Watchdog Alert": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Send (Watchdog)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
