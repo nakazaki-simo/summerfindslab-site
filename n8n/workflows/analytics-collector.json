@@ -1,0 +1,233 @@
+{
+  "name": "Analytics Collector",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "n01-cron",
+      "name": "Schedule (02:00 UTC)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "n01b-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// LOAD CONFIG\n// ===========\nconst date = new Date().toISOString().slice(0, 10);\nreturn [{\n  json: {\n    date,\n    ingestUrl: $env.ANALYTICS_INGEST_URL || '',\n    ingestToken: $env.ANALYTICS_INGEST_TOKEN || '',\n    source: $env.ANALYTICS_SOURCE || 'pinterest',\n    metricsUrl: $env.ANALYTICS_METRICS_URL || '',\n    started_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n02-config",
+      "name": "Load Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.ANALYTICS_METRICS_URL || 'https://example.invalid/metrics.json'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.ANALYTICS_METRICS_TOKEN}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n03-fetch-metrics",
+      "name": "Fetch Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD SNAPSHOT\n// ==============\n// Normalises whatever the metrics source returned into a SCHEMA-MetricSnapshot.\n// Only OUR content is referenced (pin ids / article slugs / product ids) — no\n// third-party data, no PII. If the fetch failed (neverError carried an error\n// through), we still emit a valid empty snapshot so the loop is a clean no-op.\n\nconst cfg = $('Load Config').first().json;\nconst raw = $('Fetch Metrics').first().json || {};\n\n// The shape of 'raw' depends on the source you wire up. This sketch supports a\n// simple { items: [...] } passthrough and otherwise emits an empty snapshot.\nconst srcItems = Array.isArray(raw.items) ? raw.items\n  : Array.isArray(raw.data) ? raw.data\n  : [];\n\nconst items = srcItems.map((r) => ({\n  refType: r.refType || (r.pinId ? 'pin' : 'article'),\n  refId: r.refId || r.pinId || r.slug || '',\n  productId: r.productId || null,\n  formulaId: r.formulaId || null,\n  url: r.url || null,\n  impressions: Number(r.impressions || 0),\n  saves: Number(r.saves || r.repins || 0),\n  outboundClicks: Number(r.outboundClicks || r.clicks || 0),\n  ctr: typeof r.ctr === 'number' ? r.ctr : undefined\n})).filter((x) => x.refId);\n\nreturn [{\n  json: {\n    date: cfg.date,\n    source: cfg.source,\n    generatedAt: new Date().toISOString(),\n    items\n  }\n}];"
+      },
+      "id": "n04-build-snapshot",
+      "name": "Build Snapshot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ANALYTICS_INGEST_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.ANALYTICS_INGEST_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n05-post-ingest",
+      "name": "Post to Ingest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// SUMMARIZE\n// =========\nconst resp = $input.first().json || {};\nreturn [{\n  json: {\n    ok: resp.ok === true,\n    date: resp.date || null,\n    persisted: resp.persisted,\n    via: resp.via || null,\n    counts: resp.counts || null,\n    written: resp.written || null,\n    finished_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n06-summarize",
+      "name": "Summarize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule (02:00 UTC)": {
+      "main": [
+        [
+          {
+            "node": "Load Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Metrics": {
+      "main": [
+        [
+          {
+            "node": "Build Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Post to Ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Ingest": {
+      "main": [
+        [
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
