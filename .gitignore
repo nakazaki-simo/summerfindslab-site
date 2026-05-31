@@ -41,6 +41,10 @@ next-env.d.ts
 # transient skill source clones (per .kiro/steering/skills-policy.md)
 /.skill-sources/
 
+# transient tool artifacts (playwright MCP sessions, scratch audits)
+/.playwright-mcp/
+/audit-tmp/
+
 # Kiro MCP config (contains API keys — never commit)
 /.kiro/mcp.json
 /.kiro/settings/mcp.json

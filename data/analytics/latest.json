@@ -1,0 +1,23 @@
+{
+  "date": "2026-05-31",
+  "source": "pinterest",
+  "items": [
+    {
+      "refType": "pin",
+      "refId": "pin-013-aesthetic-lifestyle",
+      "productId": "pro-breeze-pro-breeze-airflo-mini-turbo-003",
+      "formulaId": "aesthetic-lifestyle",
+      "impressions": 5000,
+      "saves": 140,
+      "outboundClicks": 80
+    },
+    {
+      "refType": "pin",
+      "refId": "pin-004-secret-roundup",
+      "formulaId": "secret-roundup",
+      "impressions": 2000,
+      "saves": 1,
+      "outboundClicks": 1
+    }
+  ]
+}

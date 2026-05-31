@@ -1,6 +1,6 @@
 # PROJECT BIBLE — Summer Finds Lab Daily
 
-> Last updated: 2026-05-31 | Document version: v1.3 | Maintainer: Project owner (solo operator)
+> Last updated: 2026-05-31 | Document version: v1.5 | Maintainer: Project owner (solo operator)
 >
 > Canonical source of truth for any AI or human continuing this project. If this
 > document and the code ever disagree, the **code wins** — then update this file.
@@ -811,6 +811,31 @@ magic (21st), and **n8n** (remote, n8n Cloud) — n8n only in `.kiro/mcp.json`.
 
 ## Changelog
 
+- **v1.5 (2026-05-31)** — Authored `requirements.md` for the new
+  `intelligence-discovery-agents` spec (requirements-first). Defines five
+  AI-agent employees of the existing Discovery_Opportunity_Intelligence Dept
+  (Trend Hunter, Product Hunter, Competitor Intelligence, Niche Discovery,
+  Opportunity Scoring), each with Objective/Inputs/Outputs/Workflow/KPIs/Memory/
+  n8n integration, plus cross-cutting requirements for the shared Opportunity
+  data model, WF-06 0–100 scoring consistency, git-tracked Memory_Store dedup,
+  n8n idempotency, and KPI alignment (Pinterest + GEO + affiliate, optimize for
+  outbound Amazon clicks). Reuses CEO-OS/PMO concepts; does not redefine them.
+  Requirements only; no design/tasks/implementation yet.
+- **v1.4 (2026-05-31)** — Authored `tasks.md` for the `pmo-coordination-system`
+  spec (requirements-first). 16 top-level tasks / 63 leaf sub-tasks covering the
+  five deliverables plus storage/id primitives, integration, API layer, and the
+  scheduled `run` cadence. 33 property-test sub-tasks mapped 1:1 to design
+  Correctness Properties (fast-check + Vitest, JavaScript/ESM). Includes the
+  8-wave Task Dependency Graph for parallel scheduling. Planning artifacts only;
+  no implementation performed.
+- **v1.3 (2026-05-31)** — Authored `design.md` for the `pmo-coordination-system`
+  spec (requirements-first). Coordination layer below the Ghost CEO, above the
+  seven Departments; reuses CEO-OS conventions (file-based JSON under `data/pmo/`,
+  `writeData.js` persistence, `/api/*` bearer/shared-secret auth, idempotent
+  upserts). Covers the five deliverables (Task Routing, Project Tracking, Dept
+  Communication Protocol, Priority Scoring, Escalation Rules) plus goal
+  intake/decomposition, fingerprint dedup, progress roll-up, and n8n integration.
+  Routing expressed as n8n-evaluable JSON rules; 33 correctness properties for PBT.
 - **v1.2 (2026-05-31)** — Installed 20 dev-workflow skills into `.kiro/skills/`
   from 3 new sources: obra/superpowers (14), obra/superpowers-lab (5),
   yusufkaraaslan/Skill_Seekers (1 → `skill-builder`). Updated skills-policy §2

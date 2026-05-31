@@ -101,7 +101,7 @@ export default function ProductDetailPage({ params }) {
                         <div className="relative aspect-square">
                             <Image
                                 src={product.image}
-                                alt={`${product.title} — ${product.brand || "editor pick"} for ${cat?.name?.toLowerCase() || "summer"}`}
+                                alt={product.imageAlt || `${product.title} — ${product.brand || "editor pick"} for ${cat?.name?.toLowerCase() || "summer"}`}
                                 fill
                                 priority
                                 sizes="(min-width:1024px) 50vw, 100vw"

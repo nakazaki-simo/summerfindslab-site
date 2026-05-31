@@ -1,9 +1,10 @@
 [
   {
     "id": "momomus-momomus-fouta-de-plage-xxl-anti-sable-avec-franges-et-100-co-001",
-    "title": "MOMOMUS Fouta de Plage XXL Anti-Sable, avec Franges et 100% Coton",
+    "title": "MOMOMUS XXL Sand-Free Beach Towel (100% Cotton, Fringed)",
     "originalTitle": "MOMOMUS Fouta de Plage XXL Anti-Sable, avec Franges et 100% Coton - Grande Serviette de Plage XXL sans Sable, Couverture de Pique-Nique ou Grand Paréo - Vert de Mer, 210x240 cm",
-    "description": "Oversized, sand-free and quick-drying. The beach blanket that earns its bag space — pairs as a picnic throw, paréo or oversized scarf.",
+    "description": "An oversized 210x240 cm sand-free cotton beach towel that shakes clean in seconds and dries fast in the sun. One of the few summer buys that earns its bag space — it doubles as a picnic blanket, a beach throw for two, or an oversized paréo. The sea-green fringed weave reads more boutique than budget.",
+    "imageAlt": "MOMOMUS sea-green fringed XXL cotton beach towel spread flat, sand-free weave",
     "brand": "MOMOMUS",
     "price": 24.99,
     "rating": {
@@ -26,9 +27,10 @@
   },
   {
     "id": "mycarbon-mycarbon-pese-valise-de-voyage-electronique-002",
-    "title": "MYCARBON Pèse Valise de Voyage Électronique",
+    "title": "MYCARBON Digital Luggage Scale (50kg / 110lb, Portable)",
     "originalTitle": "MYCARBON Pèse Valise de Voyage Électronique - Balance Bagage Numérique Max 50Kg/110Lb (LB,g,Oz,kg) avec Fonction Tare, Portable, Pile Fournie",
-    "description": "Pocket-sized luggage scale that saves you from airline overweight fees. Reads up to 50 kg in four units, runs on a single battery.",
+    "description": "A pocket-sized digital luggage scale that pays for itself the first time it saves you from an airline overweight fee. It reads up to 50 kg / 110 lb in four units, has a tare function for weighing add-ons, and runs on the included battery — so you can check every bag before you leave the house, not at the check-in desk.",
+    "imageAlt": "MYCARBON handheld digital luggage scale with backlit display and carry strap",
     "brand": "MYCARBON",
     "price": 19.99,
     "rating": {
@@ -49,9 +51,10 @@
   },
   {
     "id": "pro-breeze-pro-breeze-airflo-mini-turbo-003",
-    "title": "Pro Breeze AirFlo Mini Turbo",
+    "title": "Pro Breeze AirFlo Mini Turbo Desk Fan (3 Speeds, 90° Tilt)",
     "originalTitle": "Pro Breeze AirFlo Mini Turbo – Ventilateur de Bureau Silencieux Ultra Puissant, 3 Vitesses, Inclinaison 90°, Ventilateur Compact pour Chambre, Bureau & Maison, Rafraîchissement Instantané",
-    "description": "Compact, surprisingly quiet and powerful — three speeds and a 90° tilt make it a plug-and-play desk and bedside cooler.",
+    "description": "A compact desk fan that punches well above its size — three speeds and a 90° tilt push a surprisingly strong, steady breeze while staying quiet enough to leave running at your bedside overnight. It takes up almost no desk space, so it's the plug-and-play cooler for a hot home office, dorm room, or nightstand.",
+    "imageAlt": "Pro Breeze AirFlo Mini Turbo compact white desk fan tilted on a tabletop",
     "brand": "Pro Breeze",
     "price": 22.99,
     "rating": {
@@ -72,9 +75,10 @@
   },
   {
     "id": "grifema-grifema-pulverisateur-d-eau-200-ml-blanc-004",
-    "title": "GRIFEMA Pulvérisateur d'Eau 200 ml Blanc",
+    "title": "GRIFEMA 200ml Fine-Mist Spray Bottle (Refillable, White)",
     "originalTitle": "GRIFEMA Pulvérisateur d'Eau 200 ml Blanc – Spray Réutilisable à Brume Fine pour Cheveux, Visage, Plantes et Soins Personnels, GE2003W-200",
-    "description": "Refillable fine-mist spray bottle for hair, skin and plants. The under-$10 multipurpose tool you'll actually keep using all summer.",
+    "description": "A refillable 200 ml mist bottle that throws a genuinely fine, even spray instead of the spitty stream cheaper bottles give you. It's the quiet multitasker you'll reach for all summer — reviving second-day hair, setting makeup, cooling your face on hot days, and misting thirsty plants. Small enough for a bag, cheap enough to keep one in every room.",
+    "imageAlt": "GRIFEMA white refillable 200ml fine-mist spray bottle on a plain background",
     "brand": "GRIFEMA",
     "price": 22.99,
     "rating": {
@@ -95,9 +99,10 @@
   },
   {
     "id": "the-ordinary-the-ordinary-tonique-exfoliant-a-l-acide-glycolique-7-005",
-    "title": "The Ordinary Tonique Exfoliant à l'Acide Glycolique 7%",
+    "title": "The Ordinary Glycolic Acid 7% Exfoliating Toner",
     "originalTitle": "The Ordinary Tonique Exfoliant à l'Acide Glycolique 7%",
-    "description": "A cult skincare staple that earns its hype. Light, fast-absorbing and friendly with summer SPF routines.",
+    "description": "The cult exfoliating toner that earns the hype it gets on TikTok. A 7% glycolic acid formula sweeps away dull, sweat-and-SPF buildup for brighter, smoother skin, while it's light and fast-absorbing enough to layer under summer sunscreen. Use it at night a few times a week — and remember daily SPF, since glycolic acid makes skin more sun-sensitive.",
+    "imageAlt": "The Ordinary Glycolic Acid 7% Exfoliating Toner bottle with minimalist label",
     "brand": "The Ordinary",
     "price": 14.99,
     "rating": {
@@ -118,9 +123,10 @@
   },
   {
     "id": "amazon-essentials-amazon-essentials-ensemble-de-4-cubes-de-rangement-organisat-0",
-    "title": "Amazon Essentials Ensemble de 4 Cubes de Rangement, Organisateurs de…",
+    "title": "Amazon Essentials 4-Piece Packing Cubes Set (Travel Organizers)",
     "originalTitle": "Amazon Essentials Ensemble de 4 Cubes de Rangement, Organisateurs de Voyage avec Double Fermeture Éclair, Dessus en Maille, 100% Polyester, Taille M, Noir (Anciennement Amazon Basics)",
-    "description": "Four-cube packing set that turns chaotic suitcases into clean, browsable layers. The single best $20 you'll spend before a trip.",
+    "description": "A four-cube packing set that turns a chaotic suitcase into clean, browsable layers — one cube for tops, one for swimwear, one for underwear, one for cables. Double zippers and mesh tops let you see what's inside without unpacking, and they compress soft clothes to free up real space. The single best $20 you can spend before a summer trip.",
+    "imageAlt": "Amazon Essentials set of four black mesh-top travel packing cubes with zippers",
     "brand": "Amazon Essentials",
     "price": 19.99,
     "rating": {
@@ -141,9 +147,10 @@
   },
   {
     "id": "hovvida-hovvida-ruban-led-5m-30-led-metre-1x5m-24v-rvb-bande-led-150-007",
-    "title": "HOVVIDA Ruban LED 5M, 30 LED/Mètre, 1x5M, 24V RVB Bande LED, 150 LED,…",
+    "title": "HOVVIDA RGB LED Strip Lights 5M (App + Music Sync)",
     "originalTitle": "HOVVIDA Ruban LED 5M, 30 LED/Mètre, 1x5M, 24V RVB Bande LED, 150 LED, APP et Télécommande, Synchronisation de la Musique, Mode Minuterie, pour Chambre, Salle de Jeux, Fête, Festival",
-    "description": "RGB LED strip with app + music sync — the easy aesthetic upgrade that quietly transforms any room into a Pinterest mood board.",
+    "description": "A 5-metre RGB LED strip that's the cheapest way to give a room that warm, Pinterest-mood-board glow. Control millions of colors from the app or remote, set a timer, or switch on music sync so the lights pulse with whatever's playing. The adhesive backing runs along a headboard, desk, or shelf in minutes — no tools, no wiring.",
+    "imageAlt": "HOVVIDA RGB LED strip light roll glowing in multiple colors with app remote",
     "brand": "HOVVIDA",
     "price": 19.99,
     "rating": {
@@ -165,9 +172,10 @@
   },
   {
     "id": "beurer-bitex-beurer-bitex-go-deep-black-dispositif-contre-les-demangeaiso-008",
-    "title": "Beurer BiteX Go Deep Black Dispositif contre les démangeaisons pour…",
+    "title": "Beurer BiteX Insect Bite Healer (Smartphone-Powered, USB-C)",
     "originalTitle": "Beurer BiteX Go Deep Black Dispositif contre les démangeaisons pour smartphone, traitement des piqûres et des morsures d'insectes, dispositif pour Android et iPhone (USB‑C), avec lumière",
-    "description": "Smartphone-powered heat device that calms insect bites in minutes — no creams, no chemicals, fits in a pocket.",
+    "description": "A tiny bite-relief device that plugs straight into your phone's USB-C port and uses concentrated heat to calm the itch of mosquito and insect bites in minutes — no creams, no chemicals, nothing to leak in your bag. It draws power from the phone, has a built-in light for finding the bite at night, and works with Android and iPhone. A genuinely clever thing to keep on your keys all summer.",
+    "imageAlt": "Beurer BiteX black USB-C insect bite healer plugged into a smartphone",
     "brand": "Beurer BiteX",
     "price": 22.99,
     "rating": {
@@ -188,9 +196,10 @@
   },
   {
     "id": "cit-citetoile-gilet-de-sauvetage-pour-chien-gilet-de-sauvetage-p-009",
-    "title": "CITÉTOILE Gilet de Sauvetage pour Chien, Gilet de Sauvetage pour…",
+    "title": "CITÉTOILE Dog Life Jacket (Reflective, with Rescue Handle)",
     "originalTitle": "CITÉTOILE Gilet de Sauvetage pour Chien, Gilet de Sauvetage pour Chien avec poignée et réfléchissant, avec Une Bonne flottabilité, léger et sûr pour Les Sports Nautiques, Gris, M",
-    "description": "Reflective, buoyant pet life jacket with a sturdy handle — built for confident summer days at the lake or pool.",
+    "description": "A buoyant, reflective dog life jacket built for confident days at the lake, pool, or beach. High-visibility panels keep your dog easy to spot in the water, the sturdy top handle lets you lift them out or guide them back to the boat, and the lightweight float panels support swimmers who tire out. Sized for a secure, adjustable fit so it stays put once they jump in.",
+    "imageAlt": "CITÉTOILE grey reflective dog life jacket with top rescue handle, size M",
     "brand": "CIT",
     "price": 29.99,
     "rating": {
@@ -209,9 +218,10 @@
   },
   {
     "id": "pecute-pecute-tapis-rafraichissant-chien-chat-010",
-    "title": "Pecute Tapis Rafraichissant Chien, Chat",
+    "title": "Pecute Pet Cooling Mat (Self-Cooling, Scratch-Resistant, 65x50cm)",
     "originalTitle": "Pecute Tapis Rafraichissant Chien, Chat | M 65 * 50cm| 2021 Mise à Niveau - Reste Froid Plus Longtemps| Plus Durable - Résistant Aux Rayures(Gris)",
-    "description": "Self-activating cooling mat that gives pets a cool spot on hot afternoons — no fridge, no electricity, scratch-resistant top.",
+    "description": "A self-activating cooling mat that gives dogs and cats a genuinely cool spot to flop on hot afternoons — no water, no electricity, no freezer needed. The pressure-activated gel stays cold longer than older versions, and the upgraded scratch-resistant top survives claws and repeated naps. At 65x50 cm it suits medium pets, and it folds flat to take to the car, crate, or garden.",
+    "imageAlt": "Pecute grey self-cooling gel pet mat laid flat, scratch-resistant top surface",
     "brand": "Pecute",
     "price": 29.99,
     "rating": {

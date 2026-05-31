@@ -1,0 +1,271 @@
+{
+  "name": "Browser Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "browser-agent",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "n01-webhook",
+      "name": "Webhook (POST)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        400
+      ],
+      "webhookId": "browser-agent"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// AUTHENTICATE\n// ============\n// Single gate for the webhook. Caller sends the secret in the\n// x-browser-agent-secret header, or as \"secret\" in the JSON body\n// (header takes priority).\n\nconst expected = $env.BROWSER_AGENT_WEBHOOK_SECRET || '';\nif (!expected) {\n  throw new Error('BROWSER_AGENT_WEBHOOK_SECRET is not configured on the n8n instance.');\n}\n\nconst incoming = $input.first().json;\nconst headers = (incoming && incoming.headers) || {};\nconst body = (incoming && incoming.body) || incoming || {};\n\nconst headerSecret = headers['x-browser-agent-secret'] || headers['X-Browser-Agent-Secret'] || '';\nconst bodySecret = body.secret || '';\nconst provided = String(headerSecret || bodySecret || '');\n\nif (provided !== expected) {\n  return [{\n    json: {\n      __auth_failed: true,\n      status: 401,\n      error: 'unauthorized',\n      message: 'Invalid or missing browser agent secret.'\n    }\n  }];\n}\n\nconst sanitised = { ...body };\ndelete sanitised.secret;\n\nreturn [{ json: { __auth_ok: true, payload: sanitised, receivedAt: new Date().toISOString() } }];"
+      },
+      "id": "n02-auth",
+      "name": "Authenticate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// VALIDATE PAYLOAD\n// ================\n// Short-circuits on auth failure. Otherwise normalises url + goal and a few\n// optional knobs (waitFor, fullText).\n\nconst item = $input.first().json;\n\nif (item && item.__auth_failed) {\n  return [{ json: item }];\n}\n\nconst payload = (item && item.payload) || {};\nconst errors = [];\n\nconst url = String(payload.url || payload.link || '').trim();\nconst goal = String(payload.goal || payload.instructions || payload.task || '').trim();\nconst waitFor = Number(payload.waitFor || payload.wait || 0) || 0; // ms to wait after load\n\nif (!url) errors.push('url is required');\nif (!goal) errors.push('goal is required');\n\nfunction looksLikeUrl(s) {\n  return /^https?:\\/\\//i.test(s);\n}\nif (url && !looksLikeUrl(url)) errors.push('url must be http(s)');\nif (waitFor && (waitFor < 0 || waitFor > 15000)) errors.push('waitFor must be 0-15000 ms');\n\nif (errors.length) {\n  return [{\n    json: {\n      __validation_failed: true,\n      status: 400,\n      error: 'invalid_payload',\n      message: errors.join('; ')\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    __validated: true,\n    url,\n    goal,\n    waitFor: Math.min(Math.max(waitFor, 0), 15000),\n    receivedAt: item.receivedAt || new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n03-validate",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.BROWSERLESS_URL || 'http://localhost:3000').replace(/\\/$/, '') + '/content' + ($env.BROWSERLESS_TOKEN ? ('?token=' + $env.BROWSERLESS_TOKEN) : '') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ url: $json.url, gotoOptions: { waitUntil: 'networkidle2', timeout: 30000 }, waitForTimeout: $json.waitFor || 0 }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "n04-render",
+      "name": "Render Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD AGENT PROMPT\n// ==================\n// Turns the rendered HTML (from Browserless /content) into bounded plain text\n// and assembles the Claude prompt. Tolerant: if the render failed (neverError\n// carried an error/4xx through), it flags the failure and skips the LLM call\n// by emitting an empty prompt the next node guards against.\n\nconst upstream = $('Validate Payload').first().json;\n\n// Pass auth/validation failures straight through.\nif (upstream && (upstream.__auth_failed || upstream.__validation_failed)) {\n  return [{ json: upstream }];\n}\n\nconst MAX_CHARS = Number($env.BROWSER_AGENT_MAX_CHARS || 12000);\nconst rendered = $input.first().json || {};\n\n// Browserless /content returns the raw rendered HTML as a string (n8n usually\n// places it under .data or .body, or the whole item is the string).\nlet html = '';\nif (typeof rendered === 'string') html = rendered;\nelse if (typeof rendered.data === 'string') html = rendered.data;\nelse if (typeof rendered.body === 'string') html = rendered.body;\nelse if (typeof rendered.content === 'string') html = rendered.content;\n\n// Detect a render-layer failure (4xx/5xx surfaced by neverError).\nconst renderError =\n  rendered && (rendered.error || (rendered.statusCode && rendered.statusCode >= 400) || (rendered.status && Number(rendered.status) >= 400));\n\nif (renderError || !html) {\n  return [{\n    json: {\n      __render_failed: true,\n      status: 502,\n      error: 'render_failed',\n      message: renderError ? ('Render service error: ' + (rendered.error || rendered.message || ('status ' + (rendered.statusCode || rendered.status)))) : 'Render returned no HTML.',\n      url: upstream.url,\n      goal: upstream.goal\n    }\n  }];\n}\n\n// Pull the <title>, then strip scripts/styles and tags to readable text.\nconst titleMatch = html.match(/<title[^>]*>([^<]*)<\\/title>/i);\nconst pageTitle = titleMatch ? titleMatch[1].trim() : '';\n\nlet text = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n  .replace(/<noscript[\\s\\S]*?<\\/noscript>/gi, ' ')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/gi, ' ')\n  .replace(/&amp;/gi, '&')\n  .replace(/&quot;/gi, '\"')\n  .replace(/&#39;/gi, \"'\")\n  .replace(/&lt;/gi, '<')\n  .replace(/&gt;/gi, '>')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst truncated = text.length > MAX_CHARS;\nif (truncated) text = text.slice(0, MAX_CHARS);\n\nconst userPrompt = [\n  'You are a browser agent. You were given a goal and the readable text of a web page that was just rendered in a real headless browser.',\n  '',\n  'Return STRICT JSON only (no prose, no markdown fences) with this exact shape:',\n  '{',\n  '  \"answer\": \"<concise natural-language answer to the goal, or why it could not be met>\",',\n  '  \"data\": { },',\n  '  \"actions\": [ { \"type\": \"<navigate|click|type|scroll|extract|done>\", \"target\": \"<selector or visible label>\", \"value\": \"<optional>\" } ],',\n  '  \"confidence\": \"<high|medium|low>\"',\n  '}',\n  '',\n  'Rules:',\n  '- \"data\" holds any structured facts you extracted that are relevant to the goal (prices, names, stock, dates, links).',\n  '- \"actions\" is the ordered list of next browser steps an automation should take to make progress on the goal. Use an empty array if the goal is fully answered from this page.',\n  '- Base every claim ONLY on the page text provided. If something is not present, say so in \"answer\" and lower \"confidence\".',\n  '- Return ONLY the JSON object.',\n  '',\n  'GOAL:',\n  upstream.goal,\n  '',\n  'PAGE URL: ' + upstream.url,\n  'PAGE TITLE: ' + (pageTitle || '(none)'),\n  truncated ? '(NOTE: page text truncated to ' + MAX_CHARS + ' chars)' : '',\n  '',\n  'PAGE TEXT:',\n  text\n].join('\\n');\n\nreturn [{\n  json: {\n    __ready: true,\n    url: upstream.url,\n    goal: upstream.goal,\n    pageTitle,\n    truncated,\n    receivedAt: upstream.receivedAt,\n    user_prompt: userPrompt\n  }\n}];"
+      },
+      "id": "n05-build-prompt",
+      "name": "Build Agent Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.ANTHROPIC_API_KEY}}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.CLAUDE_MODEL || 'claude-opus-4-20250514', max_tokens: 1500, messages: [{ role: 'user', content: $json.user_prompt || 'Return {\\\"answer\\\":\\\"no page text\\\",\\\"data\\\":{},\\\"actions\\\":[],\\\"confidence\\\":\\\"low\\\"}' }] }) }}",
+        "options": {
+          "timeout": 90000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n06-claude-api",
+      "name": "Call Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BUILD RESPONSE\n// ==============\n// The Claude HTTP node has neverError:true, so we always land here. Preserve\n// any auth/validation/render failure flagged upstream; otherwise parse the\n// model's JSON tolerantly.\n\nconst upstream = $('Build Agent Prompt').first().json;\n\nif (upstream && (upstream.__auth_failed || upstream.__validation_failed || upstream.__render_failed)) {\n  return [{\n    json: {\n      ok: false,\n      status: upstream.status || 400,\n      error: upstream.error,\n      message: upstream.message,\n      url: upstream.url || null,\n      goal: upstream.goal || null,\n      answer: null,\n      data: {},\n      actions: [],\n      confidence: 'low',\n      finishedAt: new Date().toISOString()\n    }\n  }];\n}\n\nconst apiResponse = $input.first().json || {};\n\n// Detect an Anthropic-level error surfaced by neverError.\nconst looksLikeError =\n  apiResponse.error != null ||\n  (apiResponse.statusCode && apiResponse.statusCode >= 400) ||\n  (apiResponse.status && Number(apiResponse.status) >= 400 && !Array.isArray(apiResponse.content));\n\nif (looksLikeError) {\n  const detail = (apiResponse.error && apiResponse.error.message) || apiResponse.message || ('status ' + (apiResponse.statusCode || apiResponse.status));\n  return [{\n    json: {\n      ok: false,\n      status: 502,\n      error: 'llm_api_error',\n      message: String(detail),\n      url: upstream.url,\n      goal: upstream.goal,\n      answer: null,\n      data: {},\n      actions: [],\n      confidence: 'low',\n      finishedAt: new Date().toISOString()\n    }\n  }];\n}\n\n// Extract assistant text from the Messages API shape.\nlet rawText = '';\nif (Array.isArray(apiResponse.content) && apiResponse.content[0] && typeof apiResponse.content[0].text === 'string') {\n  rawText = apiResponse.content[0].text;\n} else if (typeof apiResponse.text === 'string') {\n  rawText = apiResponse.text;\n} else {\n  rawText = JSON.stringify(apiResponse);\n}\n\n// Strip fences and isolate the first {...} block.\nlet cleaned = rawText.trim()\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\nconst firstBrace = cleaned.indexOf('{');\nconst lastBrace = cleaned.lastIndexOf('}');\nif (firstBrace !== -1 && lastBrace > firstBrace) {\n  cleaned = cleaned.slice(firstBrace, lastBrace + 1);\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  return [{\n    json: {\n      ok: false,\n      status: 502,\n      error: 'invalid_model_json',\n      message: e.message,\n      url: upstream.url,\n      goal: upstream.goal,\n      answer: rawText.slice(0, 500),\n      data: {},\n      actions: [],\n      confidence: 'low',\n      finishedAt: new Date().toISOString()\n    }\n  }];\n}\n\nconst allowed = ['navigate', 'click', 'type', 'scroll', 'extract', 'done'];\nconst actions = Array.isArray(parsed.actions)\n  ? parsed.actions\n      .filter(a => a && allowed.includes(String(a.type)))\n      .slice(0, 20)\n      .map(a => ({ type: String(a.type), target: a.target != null ? String(a.target) : null, value: a.value != null ? String(a.value) : null }))\n  : [];\n\nconst confidence = ['high', 'medium', 'low'].includes(String(parsed.confidence)) ? String(parsed.confidence) : 'medium';\n\nreturn [{\n  json: {\n    ok: true,\n    status: 200,\n    url: upstream.url,\n    goal: upstream.goal,\n    pageTitle: upstream.pageTitle || null,\n    truncated: upstream.truncated === true,\n    answer: parsed.answer != null ? String(parsed.answer) : '',\n    data: (parsed.data && typeof parsed.data === 'object') ? parsed.data : {},\n    actions,\n    confidence,\n    receivedAt: upstream.receivedAt || null,\n    finishedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "n07-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Build Response').first().json) }}",
+        "options": {
+          "responseCode": "={{ $('Build Response').first().json.status || 200 }}"
+        }
+      },
+      "id": "n08-respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1780,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (POST)": {
+      "main": [
+        [
+          {
+            "node": "Authenticate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authenticate": {
+      "main": [
+        [
+          {
+            "node": "Validate Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Payload": {
+      "main": [
+        [
+          {
+            "node": "Render Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Page": {
+      "main": [
+        [
+          {
+            "node": "Build Agent Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Agent Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Claude API": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

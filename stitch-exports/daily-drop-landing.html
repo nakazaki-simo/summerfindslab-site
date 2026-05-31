@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Summer Finds Lab Daily | Curated Amazon Gems</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#d8e3f5",
+                        "primary-container": "#ff8c5a",
+                        "tertiary-fixed": "#fadfae",
+                        "primary-fixed": "#ffdbcd",
+                        "outline-variant": "#ddc1b6",
+                        "secondary-fixed-dim": "#86d4cc",
+                        "surface-container-high": "#dee9fb",
+                        "secondary": "#096a63",
+                        "on-primary-fixed-variant": "#7e2c00",
+                        "surface-variant": "#d8e3f5",
+                        "on-primary-container": "#722700",
+                        "tertiary-fixed-dim": "#ddc394",
+                        "on-background": "#111c29",
+                        "surface": "#fbf6ee",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-tint": "#9e4216",
+                        "secondary-fixed": "#a2f1e8",
+                        "primary-fixed-dim": "#ffb598",
+                        "on-tertiary-container": "#4e3d19",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#9feee5",
+                        "on-surface-variant": "#56423b",
+                        "inverse-surface": "#1f2a37",
+                        "on-tertiary-fixed": "#261900",
+                        "on-secondary-fixed-variant": "#00504b",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#c0a87b",
+                        "surface-container-low": "#eef4ff",
+                        "inverse-on-surface": "#e9f1ff",
+                        "on-primary-fixed": "#360f00",
+                        "outline": "#897269",
+                        "on-surface": "#111c29",
+                        "surface-dim": "#cfdbec",
+                        "on-error": "#ffffff",
+                        "background": "#fbf6ee",
+                        "surface-container": "#e4efff",
+                        "surface-bright": "#f8f9ff",
+                        "inverse-primary": "#ffb598",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed": "#00201d",
+                        "on-secondary-container": "#136e68",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#564420",
+                        "primary": "#9e4216",
+                        "tertiary": "#6f5c35"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "12px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "xs": "4px",
+                        "container-max": "1200px",
+                        "lg": "24px",
+                        "unit": "4px",
+                        "xl": "40px",
+                        "xxl": "64px",
+                        "sm": "8px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "display-lg": ["Playfair Display"],
+                        "headline-sm": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "500"}],
+                        "display-lg-mobile": ["36px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-sm": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "headline-md": ["32px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .editorial-shadow {
+            box-shadow: 0px 10px 30px rgba(31, 42, 55, 0.05);
+        }
+        .hero-collage-card {
+            transition: transform 0.3s ease, z-index 0s;
+        }
+        .hero-collage-card:hover {
+            transform: scale(1.05) translateY(-10px) rotate(0deg) !important;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md selection:bg-primary-container/30">
+<!-- Section 1: Sticky Nav -->
+<nav class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-md shadow-sm">
+<div class="max-w-7xl mx-auto px-gutter flex justify-between items-center h-20">
+<div class="font-headline-md text-headline-md font-bold text-primary">
+                Summer Finds Lab
+            </div>
+<div class="hidden md:flex items-center gap-xl">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Today's Picks</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Categories</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">About Us</a>
+<a class="px-lg py-sm rounded-xl border border-primary text-primary font-label-md text-label-md hover:bg-primary/5 transition-all" href="#signup">Join the Lab</a>
+</div>
+<button class="md:hidden text-primary">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<!-- Section 2: HERO -->
+<header class="relative pt-32 pb-xxl overflow-hidden">
+<div class="max-w-7xl mx-auto px-gutter grid grid-cols-1 lg:grid-cols-2 gap-xxl items-center">
+<!-- Hero Left -->
+<div class="space-y-xl z-10">
+<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface tracking-tight">
+                    Get the best summer finds in your inbox, every morning.
+                </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
+                    One short daily email. Hand-picked Amazon drops across beach, travel, TikTok-viral and aesthetic-home — vetted, never spammy.
+                </p>
+<div class="space-y-sm" id="signup">
+<form class="flex flex-col sm:flex-row gap-sm max-w-lg">
+<input class="flex-grow px-lg py-md rounded-xl border border-outline focus:border-secondary focus:ring-1 focus:ring-secondary bg-surface-container-lowest text-on-surface outline-none transition-all" placeholder="Enter your email" type="email"/>
+<button class="bg-primary-container text-on-primary-container px-xl py-md rounded-xl font-label-md text-label-md hover:shadow-lg active:scale-95 transition-all" type="submit">
+                            Get the daily drop
+                        </button>
+</form>
+<p class="text-label-sm font-label-sm text-on-surface-variant opacity-70">
+                        Free. Unsubscribe anytime. No spam, ever.
+                    </p>
+</div>
+</div>
+<!-- Hero Right: Collage -->
+<div class="relative h-[500px] md:h-[600px] mt-xl lg:mt-0 flex items-center justify-center">
+<!-- Card 1: Sunglasses -->
+<div class="hero-collage-card absolute top-10 left-0 md:left-10 w-48 md:w-56 bg-surface-container-lowest p-sm rounded-xl editorial-shadow border border-outline-variant -rotate-6 z-10">
+<img alt="Retro Tortoise Sunnies" class="w-full aspect-square object-cover rounded-lg mb-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBChUkjVFEva7aEkzpRhFwmnj9j3cHk81mzQEzG4bF7dXkuML_7PPB2DgvwJ4hsAZ7yO0kIN_fBo7bWaSVOdSlUiwOqQdMyC_2JYNqDIlmNGOLuKLgMeIxtZ9ukqoft6gbGW7ZEItGgLQ0mKie_D_cKUIzb6-joecQP1BWG6EnFu8qcU1Db9LFe1Ic37TQezl-NNvdk2BuIkCzhAhnFdAmWrFZ_F4q93K_wJ4FFTajdRYiv65FdLn-Nj2ggjI9os85BEalWtQFNcaAx"/>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-[16px] leading-tight">Retro Tortoise Sunnies</h3>
+<div class="flex items-center gap-xs mt-xs">
+<span class="material-symbols-outlined text-[14px] text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-label-sm font-label-sm">4.8</span>
+</div>
+</div>
+<span class="text-secondary font-bold text-label-md">$15</span>
+</div>
+</div>
+<!-- Card 2: Mini Fan -->
+<div class="hero-collage-card absolute top-0 right-0 md:right-10 w-48 md:w-56 bg-surface-container-lowest p-sm rounded-xl editorial-shadow border border-outline-variant rotate-3 z-20">
+<img alt="Pastel Handheld Fan" class="w-full aspect-square object-cover rounded-lg mb-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAt5WkZ3AZZWEK5eSRLeNIdbvHBvj6_Gjw1mrBQG8SJbEtci7S88Xrs6nKAwm5qRsAZ_gdw8qY23WsWxoeA8l0vZyI5mRWfYtmGwkoc5HsntwxR-yn6c0qgzc4_Z0X7p7kD3nr5NmMDKLtBmLIkEflMSZYDc6YbbCXXJUxUUW6cZ8YNveat51o0XJdQHj8F73VtWXnQqMJR0uYgIqUcnEsUOjce8xdc2gvRI_1VG5UQbPN25c-hgGaeLa4vVvJQ4Gl4AvrGx4gcXGCU"/>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-[16px] leading-tight">Pastel Handheld Fan</h3>
+<div class="flex items-center gap-xs mt-xs">
+<span class="material-symbols-outlined text-[14px] text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-label-sm font-label-sm">4.9</span>
+</div>
+</div>
+<span class="text-secondary font-bold text-label-md">$19</span>
+</div>
+</div>
+<!-- Card 3: Beach Bag -->
+<div class="hero-collage-card absolute bottom-10 left-10 md:left-24 w-48 md:w-56 bg-surface-container-lowest p-sm rounded-xl editorial-shadow border border-outline-variant -rotate-3 z-30">
+<img alt="Woven Straw Tote" class="w-full aspect-square object-cover rounded-lg mb-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWy_4ihh-xnrcAO-Y7q3zbkJPFC7g1KtlaFiKbp3ZNPFeKCXStGlLU1QbUgumi3tdrW18sQeOMssaM8mkODd-3wDlCswYjK6LBOZU3sn11If_l0wdHJ4ZooFg5QTw_s8P7hYOhCehYn0vWPsm-x2yaVQcIn3Y8K_WndG-Vzd8DUPGNQ-2RKlWZ1fTlIkFGZzhYrHJW_Jv5rHZ0Xbn11jkvwFs6CQiaM_c5E-cE701k-6Txo3hVXlNWWDkv29Kh3vPWXQr89GdIGM1O"/>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-[16px] leading-tight">Woven Straw Tote</h3>
+<div class="flex items-center gap-xs mt-xs">
+<span class="material-symbols-outlined text-[14px] text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-label-sm font-label-sm">4.7</span>
+</div>
+</div>
+<span class="text-secondary font-bold text-label-md">$24</span>
+</div>
+</div>
+<!-- Card 4: Mini Blender -->
+<div class="hero-collage-card absolute bottom-0 right-0 md:right-24 w-48 md:w-56 bg-surface-container-lowest p-sm rounded-xl editorial-shadow border border-outline-variant rotate-6 z-40">
+<img alt="Personal Smoothie Blender" class="w-full aspect-square object-cover rounded-lg mb-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtBtXm1-WEHXH3OvwEH2laiQn975xpsbV4Zu3oQYDssYLrAe5GDNHj2GiFAkaL0GplqKJ4F0L9Od4EVhM_AUWGVElaOETSYip4xylLKLxR3nFotZHAj0s8DUEnoZ-Ka1vHMxF6vDAEj8gHeKemQu4ejmCMV-n0i2dWgLMr2QZUGFp1IwRCDI6XjuqJvC2A_M6Zj2l7zirnFk-0QyyoP-kNw4rQq3Jm807c8YjcK2ivHLwfyy1BJBZT05O7zISd7LzhleGNHuoUE6od"/>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-sm text-[16px] leading-tight">Personal Blender</h3>
+<div class="flex items-center gap-xs mt-xs">
+<span class="material-symbols-outlined text-[14px] text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-label-sm font-label-sm">4.8</span>
+</div>
+</div>
+<span class="text-secondary font-bold text-label-md">$22</span>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Section 3: TRUST STRIP -->
+<section class="bg-surface-container-low py-xl border-y border-outline-variant/30">
+<div class="max-w-7xl mx-auto px-gutter grid grid-cols-2 lg:grid-cols-4 gap-xl">
+<div class="text-center space-y-xs">
+<p class="font-headline-md text-headline-sm text-primary">12</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Hand-picked finds</p>
+</div>
+<div class="text-center space-y-xs">
+<p class="font-headline-md text-headline-sm text-primary">5</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Curated categories</p>
+</div>
+<div class="text-center space-y-xs">
+<p class="font-headline-md text-headline-sm text-primary">365</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Days of summer</p>
+</div>
+<div class="text-center space-y-xs">
+<p class="font-headline-md text-headline-sm text-primary">100%</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Editor-tested</p>
+</div>
+</div>
+</section>
+<!-- Section 4: FEATURES -->
+<section class="py-xxl bg-surface">
+<div class="max-w-7xl mx-auto px-gutter">
+<h2 class="font-headline-md text-headline-md text-center mb-xxl">What you get</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-xl">
+<div class="bg-surface-container-lowest p-xl rounded-xl editorial-shadow border border-outline-variant/50 flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-primary-fixed rounded-full flex items-center justify-center mb-md">
+<span class="material-symbols-outlined text-primary text-3xl">calendar_today</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm mb-sm">Daily curation</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Fresh picks delivered to your inbox every weekday morning.</p>
+</div>
+<div class="bg-surface-container-lowest p-xl rounded-xl editorial-shadow border border-outline-variant/50 flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-secondary-container rounded-full flex items-center justify-center mb-md">
+<span class="material-symbols-outlined text-secondary text-3xl">verified</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm mb-sm">Honest reviews</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">We test or vet every product to ensure it's worth your time.</p>
+</div>
+<div class="bg-surface-container-lowest p-xl rounded-xl editorial-shadow border border-outline-variant/50 flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-tertiary-fixed rounded-full flex items-center justify-center mb-md">
+<span class="material-symbols-outlined text-tertiary text-3xl">auto_awesome</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm mb-sm">No fluff</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">We remove anything that stops deserving its spot in the lab.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 5: CATEGORIES -->
+<section class="py-xl bg-surface">
+<div class="max-w-7xl mx-auto px-gutter overflow-x-auto pb-md">
+<div class="flex items-center justify-center gap-md min-w-max">
+<button class="flex items-center gap-sm px-lg py-sm rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md hover:bg-secondary hover:text-white transition-all group">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-white/50 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">pool</span>
+</div>
+                    Beach
+                </button>
+<button class="flex items-center gap-sm px-lg py-sm rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-md text-label-md hover:bg-primary hover:text-white transition-all">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-white/50 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">flight</span>
+</div>
+                    Travel
+                </button>
+<button class="flex items-center gap-sm px-lg py-sm rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-md hover:bg-tertiary hover:text-white transition-all">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-white/50 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">bolt</span>
+</div>
+                    TikTok Finds
+                </button>
+<button class="flex items-center gap-sm px-lg py-sm rounded-full bg-secondary-container/50 text-secondary font-label-md text-label-md hover:bg-secondary hover:text-white transition-all">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-white/50 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">payments</span>
+</div>
+                    Under $25
+                </button>
+<button class="flex items-center gap-sm px-lg py-sm rounded-full bg-primary-fixed/50 text-primary font-label-md text-label-md hover:bg-primary hover:text-white transition-all">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-white/50 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">chair</span>
+</div>
+                    Aesthetic Home
+                </button>
+</div>
+</div>
+</section>
+<!-- Section 6: TESTIMONIAL -->
+<section class="py-xxl bg-[#ffe8db]">
+<div class="max-w-3xl mx-auto px-gutter text-center space-y-lg">
+<span class="material-symbols-outlined text-primary text-5xl opacity-40">format_quote</span>
+<p class="font-headline-sm text-headline-sm md:text-headline-md text-on-surface leading-relaxed italic">
+                "The only email I actually look forward to opening every morning. It's like having a personal shopper for the best of Amazon."
+            </p>
+<div class="flex justify-center gap-xs">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">— Sarah J., Verified Lab Reader</p>
+</div>
+</section>
+<!-- Section 7: CTA BAND -->
+<section class="py-xxl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-[#2d8079] to-[#4ea69d]"></div>
+<div class="relative max-w-7xl mx-auto px-gutter text-center space-y-xl py-xl">
+<h2 class="font-display-lg text-display-lg-mobile md:text-display-lg text-white">Don't miss tomorrow's drop</h2>
+<p class="font-body-lg text-body-lg text-white/90 max-w-xl mx-auto">
+                Join 15,000+ others getting the best curated summer finds every morning.
+            </p>
+<form class="flex flex-col sm:flex-row gap-sm max-w-lg mx-auto">
+<input class="flex-grow px-lg py-md rounded-xl border-none bg-white text-on-surface outline-none focus:ring-4 focus:ring-white/20 transition-all" placeholder="Enter your email" type="email"/>
+<button class="bg-primary-container text-on-primary-container px-xl py-md rounded-xl font-label-md text-label-md hover:bg-white hover:text-secondary transition-all active:scale-95 shadow-xl" type="submit">
+                    Get the daily drop
+                </button>
+</form>
+</div>
+</section>
+<!-- Section 8: FOOTER -->
+<footer class="bg-inverse-surface py-xxl text-surface-variant">
+<div class="max-w-7xl mx-auto px-gutter">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-xl items-start mb-xxl">
+<div class="space-y-md">
+<div class="font-headline-sm text-headline-sm text-primary-fixed">Summer Finds Lab Daily</div>
+<p class="font-label-sm text-label-sm opacity-80 max-w-md leading-loose">
+                        © 2024 Summer Finds Lab Daily. As an Amazon Associate we earn from qualifying purchases. All recommendations are independently curated by our editorial team.
+                    </p>
+</div>
+<div class="flex flex-wrap gap-xl md:justify-end">
+<div class="flex flex-col gap-sm">
+<h4 class="text-white font-label-md mb-xs">Explore</h4>
+<a class="font-label-sm text-label-sm hover:text-primary-fixed transition-colors" href="#">Today's Picks</a>
+<a class="font-label-sm text-label-sm hover:text-primary-fixed transition-colors" href="#">Categories</a>
+<a class="font-label-sm text-label-sm hover:text-primary-fixed transition-colors" href="#">Archive</a>
+</div>
+<div class="flex flex-col gap-sm">
+<h4 class="text-white font-label-md mb-xs">Legal</h4>
+<a class="font-label-sm text-label-sm hover:text-primary-fixed transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-sm text-label-sm hover:text-primary-fixed transition-colors" href="#">Terms of Service</a>
+<a class="font-label-sm text-label-sm hover:text-primary-fixed transition-colors" href="#">Affiliate Disclosure</a>
+</div>
+<div class="flex flex-col gap-sm">
+<h4 class="text-white font-label-md mb-xs">About</h4>
+<a class="font-label-sm text-label-sm hover:text-primary-fixed transition-colors" href="#">Our Story</a>
+<a class="font-label-sm text-label-sm hover:text-primary-fixed transition-colors" href="#">Contact</a>
+<a class="font-label-sm text-label-sm hover:text-primary-fixed transition-colors" href="#">FAQ</a>
+</div>
+</div>
+</div>
+<div class="border-t border-white/10 pt-xl flex flex-col md:flex-row justify-between items-center gap-md">
+<div class="flex items-center gap-md">
+<a class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all" href="#">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</a>
+<a class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all" href="#">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+</a>
+</div>
+<p class="font-label-sm text-label-sm opacity-50">Crafted for summer lovers worldwide.</p>
+</div>
+</div>
+</footer>
+<script>
+        // Simple scroll interaction for the nav
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 20) {
+                nav.classList.add('shadow-md');
+                nav.classList.remove('shadow-sm');
+            } else {
+                nav.classList.add('shadow-sm');
+                nav.classList.remove('shadow-md');
+            }
+        });
+
+        // Add floating animation to hero cards
+        const cards = document.querySelectorAll('.hero-collage-card');
+        cards.forEach((card, index) => {
+            card.style.animation = `floating ${3 + index}s ease-in-out infinite alternate`;
+        });
+
+        // Add basic floating keyframes via JS for simplicity
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes floating {
+                from { transform: translateY(0px) rotate(inherit); }
+                to { transform: translateY(-15px) rotate(inherit); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body></html>
