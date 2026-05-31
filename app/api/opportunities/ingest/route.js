@@ -25,8 +25,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { writeDataFiles } from "@/lib/persist/writeData.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,32 +79,25 @@ export async function POST(req) {
             ? report.date
             : new Date().toISOString().slice(0, 10);
 
-    const dir = path.join(process.cwd(), "data", "opportunities");
-    const datedFile = path.join(dir, `${date}.json`);
-    const latestFile = path.join(dir, "latest.json");
-
+    const datedPath = `data/opportunities/${date}.json`;
+    const latestPath = `data/opportunities/latest.json`;
     const payload = JSON.stringify(report, null, 2) + "\n";
 
-    try {
-        await fs.mkdir(dir, { recursive: true });
-        await fs.writeFile(datedFile, payload, "utf8");
-        await fs.writeFile(latestFile, payload, "utf8");
-        return NextResponse.json({
-            ok: true,
-            date,
-            persisted: true,
-            written: { latest: "data/opportunities/latest.json", dated: `data/opportunities/${date}.json` },
-        });
-    } catch (err) {
-        // Read-only filesystem (Vercel) — surface the error but still 200,
-        // so the caller knows the report was received and validated.
-        return NextResponse.json({
-            ok: true,
-            date,
-            persisted: false,
-            error: err && err.code ? err.code : "write_failed",
-            hint:
-                "Filesystem is read-only on this host. Wire up GitHub Contents API or Vercel KV in this route to persist long-term.",
-        });
-    }
+    const result = await writeDataFiles(
+        [
+            { path: datedPath, content: payload },
+            { path: latestPath, content: payload }
+        ],
+        { message: `chore(data): opportunity report ${date}` }
+    );
+
+    return NextResponse.json({
+        ok: true,
+        date,
+        persisted: result.persisted,
+        via: result.via,
+        written: { latest: latestPath, dated: datedPath },
+        ...(result.pr ? { pr: result.pr } : {}),
+        ...(result.error ? { error: result.error, hint: result.hint } : {})
+    });
 }

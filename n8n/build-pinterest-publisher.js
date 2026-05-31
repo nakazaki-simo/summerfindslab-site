@@ -17,12 +17,14 @@
  * the pin id (plus the Pinterest-assigned id) to the published log via the
  * site's ingest endpoint so re-runs are idempotent.
  *
- * The workflow uses the `sourceImage` already in each pin record (Amazon CDN
- * URL or category hero image) as the initial pin media. The Canva-rendered
- * version can replace those URLs later by editing pinterest-pins.json — the
- * publisher will pick up the new URLs on the next run for any pin whose id
- * isn't in the published log yet. (Once published, a pin's image is locked
- * by Pinterest unless you delete and re-create.)
+ * Pin media: for every pin that carries a `productId`, the publisher builds a
+ * live Satori render URL — `<SITE_URL>/api/pins/render?id=<productId>&formula=
+ * <formulaId>` — and uses that as `media_source.url`. This is the free,
+ * API-driven pin image (no Canva export needed). Pins without a `productId`
+ * (category / guide covers) fall back to their existing `sourceImage`.
+ * Pinterest fetches the URL server-side at publish time, so the PNG is
+ * generated on demand. (Once published, a pin's image is locked by Pinterest
+ * unless you delete and re-create.)
  *
  * Architecture
  * ============
@@ -44,6 +46,9 @@
  * Env vars (set in n8n Settings -> Variables)
  *   PINTEREST_ACCESS_TOKEN      (required) Bearer token with boards:read pins:write
  *   PINTEREST_DEFAULT_BOARD_ID  (optional) Fallback board for unmatched pins
+ *   SITE_URL                    (required) Site origin used to build the Satori
+ *                               render URL (no trailing slash), e.g.
+ *                               https://summerfindslab-site.vercel.app
  *   EXISTING_PINS_JSON_URL      (required) URL serving data/pinterest-pins.json
  *   PUBLISHED_LOG_URL           (optional) GET endpoint returning published pin ids
  *   PUBLISHED_INGEST_URL        (required) POST endpoint to append to the log
@@ -67,10 +72,15 @@ const loadConfigCode = `// LOAD CONFIG
 const pinsPerRun = Math.max(1, Math.min(50, Number($env.PINS_PER_RUN || 5)));
 const batchId = 'publish-' + new Date().toISOString().slice(0, 10);
 
+// Site origin for the Satori pin renderer. Strip any trailing slash so the
+// '/api/pins/render' path concatenation is always clean.
+const siteUrl = String($env.SITE_URL || '').replace(/\\/+$/, '');
+
 return [{
   json: {
     pinsPerRun,
     batchId,
+    siteUrl,
     pinterestToken: $env.PINTEREST_ACCESS_TOKEN || '',
     defaultBoardId: $env.PINTEREST_DEFAULT_BOARD_ID || '',
     pinsUrl: $env.EXISTING_PINS_JSON_URL || '',
@@ -138,7 +148,11 @@ let throttled = 0;
 
 for (let i = 0; i < pins.length; i++) {
   const pin = pins[i];
-  if (!pin || !pin.id || !pin.title || !pin.sourceImage || !pin.link) {
+  // A pin needs an id, a title, a link, and SOME media. Media can come from a
+  // productId (Satori render) OR an existing sourceImage. The Satori-vs-image
+  // decision is made further down once the board is resolved.
+  const hasMedia = Boolean(pin && (pin.productId || (pin.kind === 'product' && pin.id) || pin.sourceImage));
+  if (!pin || !pin.id || !pin.title || !pin.link || !hasMedia) {
     staticData.skipped.push({ index: i, id: pin && pin.id, reason: 'missing_required_fields' });
     continue;
   }
@@ -175,17 +189,41 @@ for (let i = 0; i < pins.length; i++) {
   const altText = String(pin.textOverlay || pin.title).slice(0, 500);
   const title = String(pin.title).slice(0, 100);
 
+  // Pin media: prefer the live Satori render route for any pin that resolves
+  // to a real product (productId). Pinterest fetches the URL server-side, so
+  // the 1000x1500 PNG is generated on demand. Category/guide cover pins have
+  // no productId — fall back to their existing sourceImage.
+  let mediaUrl = pin.sourceImage;
+  let mediaSource = 'sourceImage';
+  const productRef = pin.productId || (pin.kind === 'product' ? pin.id : '');
+  if (cfg.siteUrl && productRef && pin.formulaId) {
+    mediaUrl =
+      cfg.siteUrl +
+      '/api/pins/render?id=' +
+      encodeURIComponent(productRef) +
+      '&formula=' +
+      encodeURIComponent(pin.formulaId);
+    mediaSource = 'satori';
+  }
+
+  if (!mediaUrl) {
+    staticData.skipped.push({ index: i, id: pin.id, reason: 'no_media_url' });
+    continue;
+  }
+
   queue.push({
     json: {
       pinId: pin.id,
       boardId,
+      mediaSource,
+      renderUrl: mediaSource === 'satori' ? mediaUrl : null,
       payload: {
         link,
         title,
         description,
         alt_text: altText,
         board_id: boardId,
-        media_source: { source_type: 'image_url', url: pin.sourceImage }
+        media_source: { source_type: 'image_url', url: mediaUrl }
       }
     },
     pairedItem: { item: i }
@@ -218,6 +256,8 @@ return [{
       skipped_no_board: skipped.filter(s => s.reason === 'no_board_match').length,
       skipped_invalid: skipped.filter(s => s.reason === 'missing_required_fields').length,
       throttled: staticData.throttled || 0,
+      published_via_satori: processed.filter(p => p.mediaSource === 'satori').length,
+      published_via_sourceimage: processed.filter(p => p.mediaSource === 'sourceImage').length,
       boards_available: (staticData.boardsAvailable || []).length
     },
     batchId: staticData.batchId,
@@ -259,6 +299,8 @@ staticData.processed.push({
   pinId,
   pinterestPinId: pinterestId,
   boardId: queueItem.boardId,
+  mediaSource: queueItem.mediaSource || null,
+  renderUrl: queueItem.renderUrl || null,
   publishedAt: new Date().toISOString()
 });
 
@@ -267,6 +309,8 @@ return [{
     pinId,
     pinterestPinId: pinterestId,
     boardId: queueItem.boardId,
+    mediaSource: queueItem.mediaSource || null,
+    renderUrl: queueItem.renderUrl || null,
     publishedAt: new Date().toISOString(),
     published: true
   },
@@ -459,7 +503,7 @@ const workflow = {
                 sendBody: true,
                 specifyBody: "json",
                 jsonBody:
-                    "={{ JSON.stringify({ pinId: $json.pinId, pinterestPinId: $json.pinterestPinId, boardId: $json.boardId, publishedAt: $json.publishedAt, published: $json.published, error: $json.error || null }) }}",
+                    "={{ JSON.stringify({ pinId: $json.pinId, pinterestPinId: $json.pinterestPinId, boardId: $json.boardId, mediaSource: $json.mediaSource || null, renderUrl: $json.renderUrl || null, publishedAt: $json.publishedAt, published: $json.published, error: $json.error || null }) }}",
                 options: {
                     timeout: 30000,
                     response: { response: { neverError: true } }
