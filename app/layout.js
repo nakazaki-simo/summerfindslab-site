@@ -9,6 +9,7 @@ import ScrollProgress from "@/components/ScrollProgress";
 import Cursor from "@/components/Cursor";
 import BackToTop from "@/components/BackToTop";
 import JsonLd from "@/components/JsonLd";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -111,6 +112,7 @@ export default function RootLayout({ children }) {
                 <main>{children}</main>
                 <Footer />
                 <BackToTop />
+                <Analytics />
             </body>
         </html>
     );
