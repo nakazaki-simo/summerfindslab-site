@@ -1,6 +1,6 @@
 # PROJECT BIBLE — Summer Finds Lab Daily
 
-> Last updated: 2026-05-31 | Document version: v1.5 | Maintainer: Project owner (solo operator)
+> Last updated: 2026-05-31 | Document version: v1.6 | Maintainer: Project owner (solo operator)
 >
 > Canonical source of truth for any AI or human continuing this project. If this
 > document and the code ever disagree, the **code wins** — then update this file.
@@ -811,6 +811,12 @@ magic (21st), and **n8n** (remote, n8n Cloud) — n8n only in `.kiro/mcp.json`.
 
 ## Changelog
 
+- **v1.6 (2026-05-31)** — Synced full local state to GitHub on `add-skills-superpowers`
+  (commit `5e3183e`): committed the new `intelligence-discovery-agents`,
+  `pmo-coordination-system`, and `ceo-operating-system` specs, `project-bible-policy`
+  steering, durable `data/analytics|memory|training` files, the n8n `browser-agent`
+  workflow + builder, and stitch exports. Added `/.playwright-mcp/` and `/audit-tmp/`
+  to `.gitignore` as transient tool artifacts. Housekeeping only; no code behavior change.
 - **v1.5 (2026-05-31)** — Authored `requirements.md` for the new
   `intelligence-discovery-agents` spec (requirements-first). Defines five
   AI-agent employees of the existing Discovery_Opportunity_Intelligence Dept
