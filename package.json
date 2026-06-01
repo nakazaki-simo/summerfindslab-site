@@ -18,6 +18,7 @@
         "canva:generate": "node scripts/canva/generate-pins.mjs"
     },
     "dependencies": {
+        "@vercel/analytics": "^2.0.1",
         "lenis": "1.1.20",
         "motion": "11.11.17",
         "next": "14.2.35",
