@@ -57,7 +57,9 @@ for (const n of nodes) {
     if (names.has(n.name)) errors.push(`duplicate node name: ${n.name}`);
     names.add(n.name);
 
-    if (/trigger/i.test(n.type)) triggerCount++;
+    // Triggers / entry points: explicit *Trigger nodes AND webhook nodes
+    // (a webhook is an entry point even though its type isn't "*Trigger").
+    if (/trigger/i.test(n.type) || n.type === "n8n-nodes-base.webhook") triggerCount++;
 
     // Validate Code node bodies parse as JS.
     if (n.type === "n8n-nodes-base.code") {

@@ -63,6 +63,7 @@ Every workflow:
 | `workflows/pinterest-publisher.json` | schedule (09:00 UTC) + manual | `EXISTING_PINS_JSON_URL`, `PUBLISHED_LOG_URL`, Pinterest /v5/boards | Pinterest /v5/pins POST per pin, `PUBLISHED_INGEST_URL` log POST |
 | `workflows/pinterest-publish-pin.json` | webhook (POST `/webhook/pinterest-publish-pin`) | one pin payload (imageUrl, title, description, link, boardId) | Pinterest /v5/pins POST, `PUBLISHED_INGEST_URL` log POST, JSON webhook response |
 | `workflows/pinterest-boards-helper.json` | manual + webhook (POST `/webhook/pinterest-boards-helper`) | Pinterest /v5/user_account, paginated /v5/boards | `BOARDS_CACHE_INGEST_URL` POST + diagnostic report (token validity, board list, suggested default) |
+| `workflows/browser-agent.json` | webhook (POST `/webhook/browser-agent`) | `{ url, goal, secret }`, `BROWSERLESS_URL`, `ANTHROPIC_API_KEY` | JSON: `answer`, extracted `data`, suggested next browser `actions`, `confidence` |
 
 ### WF-01 — Affiliate Product Processing Pipeline
 
@@ -127,6 +128,13 @@ in `data/pinterest-published.json`, throttles to `PINS_PER_RUN` per run
 pin to Pinterest's `/v5/pins` endpoint. Looks up your boards live and matches
 each pin's `boardSuggestion` field against the board name; falls back to
 `PINTEREST_DEFAULT_BOARD_ID` if no name matches.
+
+**Pin media (Satori, free).** For every pin that resolves to a real product
+(`productId`), the publisher sets `media_source.url` to the live Satori render
+route — `<SITE_URL>/api/pins/render?id=<productId>&formula=<formulaId>` — so the
+1000×1500 PNG is generated on demand at publish time, with no Canva export.
+Category/guide cover pins (no `productId`) fall back to their existing
+`sourceImage`. Requires `SITE_URL` to point at the deployed origin.
 
 ```
 Schedule (09:00 UTC) | Manual Trigger
@@ -305,6 +313,135 @@ Vercel KV later without changing the workflow.
 
 ---
 
+### WF-07 — Browser Agent
+
+Webhook-triggered "browse a page, then reason about it" agent. It pairs a real
+headless browser (Browserless / any Playwright-compatible render API) with
+Claude as the decision brain. Give it a URL plus a plain-English goal and it
+returns a structured result: an answer, the data it extracted, and the next
+browser actions an automation could take.
+
+Request shape (POST `/webhook/browser-agent`):
+
+```json
+{
+  "url":    "https://www.example.com/product/123",
+  "goal":   "Get the price and whether it's in stock",
+  "secret": "<BROWSER_AGENT_WEBHOOK_SECRET>",
+  "waitFor": 0
+}
+```
+
+The caller must send the secret in either:
+
+- header `x-browser-agent-secret: <BROWSER_AGENT_WEBHOOK_SECRET>`, **or**
+- body field `"secret": "<BROWSER_AGENT_WEBHOOK_SECRET>"`
+
+Response (200 on success, 400/401/502 on failure):
+
+```json
+{
+  "ok": true,
+  "status": 200,
+  "url": "https://www.example.com/product/123",
+  "goal": "Get the price and whether it's in stock",
+  "answer": "The product is $24.99 and currently in stock.",
+  "data": { "price": "$24.99", "inStock": true },
+  "actions": [ { "type": "click", "target": "Add to cart", "value": null } ],
+  "confidence": "high",
+  "pageTitle": "Example Product 123",
+  "finishedAt": "2026-05-31T10:00:01.234Z"
+}
+```
+
+Flow:
+
+```
+Webhook (POST)
+   -> Authenticate          (Code: shared-secret check)
+   -> Validate Payload      (Code: url + goal sanity)
+   -> Render Page           (HTTP POST Browserless /content, retry x3, neverError)
+   -> Build Agent Prompt    (Code: rendered HTML -> bounded text -> Claude prompt)
+   -> Call Claude API       (HTTP POST Anthropic, retry x3, neverError)
+   -> Build Response        (Code: tolerant JSON parse, shape success / error)
+   -> Respond to Webhook    (JSON response, status code from Build Response)
+```
+
+Why a render step **and** an LLM step instead of a single "browser node":
+
+- The render call is what actually drives the browser (navigate + execute the
+  page's JS + return the live DOM), so the agent reasons over the *rendered*
+  page, not the raw server HTML. That makes it work on JS-heavy sites.
+- Keeping observe (render) and reason (Claude) as separate idempotent nodes
+  matches the rest of this stack: one trigger, one job, retry/backoff +
+  `neverError` on every HTTP node, every secret read from `$env`.
+
+Pairs with the **Kiro-side browser agent** (Playwright MCP) configured in
+`.kiro/settings/mcp.json`: use Kiro's MCP browser for interactive, in-editor
+automation, and this workflow for headless, secret-gated automation other
+systems can call over HTTP.
+
+Bring your own render service:
+
+- **Browserless cloud** — set `BROWSERLESS_URL=https://chrome.browserless.io`
+  and `BROWSERLESS_TOKEN=<your token>`.
+- **Self-hosted** — `docker run -p 3000:3000 browserless/chrome`, then set
+  `BROWSERLESS_URL=http://localhost:3000` (add `BROWSERLESS_TOKEN` if you
+  started it with `TOKEN=...`).
+
+Source: [`build-browser-agent.js`](./build-browser-agent.js)
+Output: [`workflows/browser-agent.json`](./workflows/browser-agent.json)
+
+### WF-08 — WhatsApp Command Center
+
+A control plane for the whole system, driven from the owner's WhatsApp via the
+**official WhatsApp Business Cloud API** (Meta Graph API) — never unofficial web
+automation. Owner-only and approve-gated.
+
+```
+WhatsApp Trigger (inbound webhook)
+  -> Authenticate     (owner-number allowlist + shared secret; reject all else)
+  -> Parse Command    (SCHEMA-Command: verb + args)
+  -> Route Command    (Switch by verb)
+       status   -> read /api/analytics/latest -> KPIs
+       report <dept>   -> latest dept digest
+       run <workflow> [n] -> budget-capped; publish/spend needs approve first
+       approve <id> / reject <id> [reason] -> resolve human-gated drafts/pins
+       pause <dept> / resume <dept>
+       budget   -> remaining daily spend
+  -> Format Reply -> WhatsApp Send (Graph API /messages)
+
+Daily Digest Cron (DIGEST_HOUR_UTC) -> Fetch Analytics -> WhatsApp Send
+Watchdog Trigger (webhook) -> WhatsApp Send (with Langfuse trace link)
+```
+
+**SCHEMA-Command** (defined in `build-whatsapp-control.js`; `docs/AGENT-SYSTEM.md`
+does not exist in this repo, so this builder is the source of truth):
+
+```
+{ verb: 'status'|'report'|'run'|'approve'|'reject'|'pause'|'resume'|'budget',
+  args: string[], raw: string, target?: string, count?: number|null, reason?: string }
+```
+
+**Security model (owner-only, approve-gated):**
+
+- Every inbound message must come from `OWNER_WHATSAPP_NUMBER` (E.164 digits) **and**
+  begin with the shared secret `WHATSAPP_CMD_SECRET` as the first token
+  (e.g. `<secret> status`). Either check failing → rejected, logged, **no command runs**.
+  The rejection reply goes only to the owner number, never echoes the attempted secret.
+- `run` of a workflow that posts publicly or spends (`pinterest-publisher`/WF-04,
+  `affiliate-product-pipeline`/WF-01, `pin-generator`/WF-02) does **not** auto-execute —
+  it returns an approval prompt with a generated `approvalId`; the action only fires
+  after an explicit `approve <id>`.
+- Budget caps (`DAILY_BUDGET_USD`) are enforced before any spend action.
+
+**Meta WhatsApp Cloud API setup** — see "Getting WhatsApp credentials from Meta" below.
+
+Source: [`build-whatsapp-control.js`](./build-whatsapp-control.js)
+Output: [`workflows/whatsapp-control.json`](./workflows/whatsapp-control.json)
+
+---
+
 ## Environment variables
 
 See [`.env.example`](./.env.example). All variables go in **n8n → Settings →
@@ -312,8 +449,8 @@ Variables** (or the n8n container env). Quick summary:
 
 | Variable | Used by | Required | Notes |
 |----------|---------|----------|-------|
-| `ANTHROPIC_API_KEY` | WF-01, WF-02 | yes | Anthropic API key. |
-| `CLAUDE_MODEL` | WF-01, WF-02 | no | Default `claude-opus-4-20250514`. |
+| `ANTHROPIC_API_KEY` | WF-01, WF-02, WF-06, WF-07 | yes | Anthropic API key. |
+| `CLAUDE_MODEL` | WF-01, WF-02, WF-06, WF-07 | no | Default `claude-opus-4-20250514`. |
 | `WEBSITE_INSERT_URL` | WF-01 | yes | Endpoint that accepts product payloads. |
 | `WEBSITE_API_TOKEN` | WF-01 | yes | Bearer token for the above. |
 | `PRODUCTS_JSON_URL` | WF-02 | yes | URL serving `data/products.json`. |
@@ -340,10 +477,49 @@ Variables** (or the n8n container env). Quick summary:
 | `PIN_PUBLISH_WEBHOOK_SECRET` | WF-04b | yes | Shared secret for the single-pin webhook caller. |
 | `BOARDS_CACHE_INGEST_URL` | WF-04c | no | POST endpoint that persists the resolved board list. |
 | `BOARDS_CACHE_INGEST_TOKEN` | WF-04c | no | Bearer token for the above. |
+| `BROWSER_AGENT_WEBHOOK_SECRET` | WF-07 | yes | Shared secret the browser-agent webhook caller must send. |
+| `BROWSERLESS_URL` | WF-07 | yes | Base URL of a Browserless / render service. Workflow calls `<URL>/content`. |
+| `BROWSERLESS_TOKEN` | WF-07 | no | Token appended as `?token=` to the render call (required by Browserless cloud). |
+| `BROWSER_AGENT_MAX_CHARS` | WF-07 | no | Max page-text chars sent to Claude (default 12000). |
+| `WHATSAPP_TOKEN` | WF-08 | yes | Meta permanent access token (System User token). |
+| `WHATSAPP_PHONE_ID` | WF-08 | yes | WhatsApp phone number ID (Graph API). |
+| `WHATSAPP_VERIFY_TOKEN` | WF-08 | yes | Webhook verification token (GET handshake with Meta). |
+| `OWNER_WHATSAPP_NUMBER` | WF-08 | yes | Owner number, E.164 digits only (e.g. `2126…`). Allowlist of one. |
+| `WHATSAPP_CMD_SECRET` | WF-08 | yes | Shared secret that must prefix every command (`<secret> status`). |
+| `WHATSAPP_GRAPH_VERSION` | WF-08 | no | Graph API version, default `v22.0`. |
+| `DIGEST_HOUR_UTC` | WF-08 | no | Hour (0-23) for the daily digest, default 7. |
+| `DAILY_BUDGET_USD` | WF-08 | no | Daily spend cap enforced before spend actions, default 5. |
+| `LANGFUSE_BASE_URL` | WF-08 | no | Base for watchdog trace links, default `https://cloud.langfuse.com`. |
 
----
+### Getting WhatsApp credentials from Meta
 
-## Importing workflows into n8n
+WF-08 uses the **official WhatsApp Business Cloud API**. To fill the five
+required vars:
+
+1. **Meta app + WhatsApp product.** Go to <https://developers.facebook.com> →
+   *My Apps* → *Create App* → type **Business**. In the app, add the
+   **WhatsApp** product. This gives you a test phone number and a sandbox.
+2. **`WHATSAPP_PHONE_ID`.** WhatsApp → *API Setup*: copy the **Phone number ID**
+   (a long numeric id, not the phone number itself).
+3. **`WHATSAPP_TOKEN`.** For testing, the *API Setup* page shows a 24-hour
+   temporary token. For production, create a **System User** in
+   *Business Settings → Users → System Users*, assign it the WhatsApp app with
+   `whatsapp_business_messaging` + `whatsapp_business_management` permissions,
+   and **Generate a permanent token**. Put that in `WHATSAPP_TOKEN`.
+4. **`WHATSAPP_VERIFY_TOKEN`.** Invent any random string. In the app →
+   WhatsApp → *Configuration → Webhook*, set the **Callback URL** to your n8n
+   webhook (`https://<your-n8n>/webhook/whatsapp-control`) and paste the same
+   string as the **Verify token**. Subscribe to the **messages** field.
+   (n8n's Webhook node answers the GET handshake; if Meta requires the exact
+   hub.challenge echo, add a tiny GET branch — noted as a follow-up.)
+5. **`OWNER_WHATSAPP_NUMBER`.** Your own WhatsApp number in **E.164 digits only**
+   (country code + number, no `+`, spaces, or dashes), e.g. `212600112233`.
+6. **`WHATSAPP_CMD_SECRET`.** Invent a long random string. You'll prefix every
+   command with it: `<secret> status`. This is a second factor on top of the
+   number allowlist.
+
+> Until these are set in n8n Variables, WF-08 cannot send or receive — import
+> it, fill the vars, then run the live send/receive test.
 
 1. Open n8n → **Workflows** → **Import from File**.
 2. Select the JSON file under `workflows/`.
